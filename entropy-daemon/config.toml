@@ -1,0 +1,24 @@
+[daemon]
+# Path where GMC Data Viewer saves CSV files.
+# Windows path via WSL:  /mnt/c/Users/YourName/Documents/GMC
+# Native WSL/Linux path: /home/yourname/gmc-data
+watch_folder = "/mnt/c/Users/YourName/Documents/GMC"
+port = 8745
+log_level = "INFO"
+
+[node]
+# Path to your X1 / Solana keypair JSON file
+keypair_path = "~/.config/solana/id.json"
+# Your node name (shown on-chain)
+node_name = "Genesis Node"
+
+[entropy]
+# How many recent seeds to XOR together for the rolling pool
+rolling_pool_size = 10
+# Minimum CPM to accept as valid entropy (reject noise / disconnected sensor)
+min_cpm = 5
+
+[x1]
+rpc_url = "https://rpc.x1.xyz"
+# Program ID (update after deploy)
+program_id = "GeiGR4nd0mXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
