@@ -31,10 +31,9 @@ counter, processes it into cryptographically usable entropy, and posts it on-cha
 — where any smart contract can request a provably fair random number.
 
 ### The Genesis Node
-The first entropy node runs beside a **400+ million year old trilobite fossil** — a
-Cambrian-era creature whose ancient radioactive signature seeds the genesis block of
-this oracle. The same quantum randomness that has governed matter since the Big Bang
-now secures your smart contracts.
+The first entropy node runs beside **fossils from the Cenozoic Era** — creatures preserved
+from the Miocene to Pleistocene epoch, roughly 2–23 million years ago. The same quantum
+randomness that has governed matter since the Big Bang now secures your smart contracts.
 
 ---
 
@@ -166,8 +165,8 @@ const result = await client.awaitFulfillment(requestId);
 
 **Skywalker** — `4jLcjZLcDcGuS1M4SHtBRPXs2h3HULUL2fDnCuaaLzzY`
 
-Running beside a 400 million year old trilobite fossil. The same quantum randomness
-that governed the Cambrian sea floor now secures your X1 smart contracts.
+Running beside fossils from the Cenozoic Era (Miocene to Pleistocene, ~2–23 million years ago).
+The same quantum randomness that has governed matter since the Big Bang now secures your X1 smart contracts.
 
 ---
 
