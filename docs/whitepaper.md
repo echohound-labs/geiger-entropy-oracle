@@ -613,3 +613,132 @@ Phase 4: Stake-weighted participation
 
 The open source nature of the project means anyone can run the exact same stack and verify the results independently. This is the strongest possible mitigation for hardware trust at single-node scale.
 
+
+---
+
+## Appendix D — Complete Token Economics (v1 + v2)
+
+### Mining Rewards (Decay Events)
+```
+v1 (launch):
+Every decay event → mint RADS → 100% to node operator
+Simple. Fast. Gets nodes online immediately.
+
+v2 (upgrade):
+Every decay event → mint RADS
+├── 70% → node operator wallet (automatic)
+├── 20% → protocol treasury (multisig)
+└── 10% → burned forever (deflationary)
+```
+
+### Usage Fees (dApp Requests)
+```
+v2 (upgrade):
+Every randomness request → 0.001 RADS fee
+├── 50% → node operator who fulfilled request
+├── 30% → burned forever (deflationary)
+└── 20% → protocol treasury (multisig)
+```
+
+### Node Operator Income Streams
+```
+Stream 1 — Mining (passive):
+Just run the hardware
+→ earn RADS every decay event
+→ works even with zero dApps
+
+Stream 2 — Fulfillment (active):
+Earn when dApps use the oracle
+→ more dApps = more income
+→ scales with protocol adoption
+```
+
+### Treasury — Multisig Model
+
+The protocol treasury will be controlled by a
+multisig wallet — NOT a single person.
+```
+v2 Launch:
+2-of-3 multisig
+├── Echo Hound Labs (Skywalker)
+├── Trusted community member
+└── Echo Hound Labs cold wallet
+
+v3 (DAO transition):
+Community governance
+├── RADS holders vote on proposals
+├── Treasury spending requires vote
+├── Protocol upgrades require vote
+└── Node standards require vote
+```
+
+Treasury funds used for:
+```
+├── Protocol development
+├── Security audits
+├── dApp integration grants
+├── Node operator incentives
+├── Marketing and ecosystem growth
+└── Bug bounties
+```
+
+### Why Multisig Over Complex Hooks
+```
+Complex on-chain hooks:
+✗ More attack surface
+✗ Harder to audit
+✗ More expensive to deploy
+✗ Harder to upgrade if bugs found
+
+Multisig treasury:
+✓ Simple and battle tested
+✓ Transparent on-chain
+✓ Community can verify spending
+✓ Easy to upgrade to DAO later
+✓ Same model used by:
+   - Uniswap early days
+   - Many successful protocols
+   - Battle tested approach
+```
+
+### Upgrade Path
+```
+v1 (now):
+Simple mint → node operator
+No splits, no fees, no complexity
+Goal: get token live, get nodes online
+
+v2 (Q2 2026):
+Add 70/20/10 mining split
+Add 50/30/20 request fee split
+Add multisig treasury
+Single oracle program upgrade
+Nothing changes for token or dApps
+
+v3 (Q3 2026):
+Multisig transitions to DAO
+RADS holders govern protocol
+Community controls treasury
+Full decentralization achieved
+```
+
+### The Two Flows Summary
+```
+Flow 1 — Mining:
+Physics → entropy → RADS minted
+└── rewards hardware operators
+
+Flow 2 — Usage:
+dApps → request randomness → RADS burned/distributed
+└── rewards service providers
+└── creates deflationary pressure
+└── funds protocol development
+
+Combined:
+Early nodes survive on mining
+Mature nodes thrive on usage fees
+Protocol self-funds via treasury
+Supply decreases as adoption grows
+Value increases over time ☢️
+```
+
