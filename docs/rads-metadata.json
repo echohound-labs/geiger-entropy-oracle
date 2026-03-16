@@ -1,0 +1,25 @@
+{
+  "name": "RADS",
+  "symbol": "RADS",
+  "description": "RADS is mined by radioactive decay. Supply controlled by quantum physics. Max 1,000,000 ever. Powered by Echo Hound Labs Geiger Entropy Oracle on X1 blockchain.",
+  "image": "https://raw.githubusercontent.com/echohound-labs/geiger-entropy-oracle/main/docs/rads-logo.png",
+  "external_url": "https://github.com/echohound-labs/geiger-entropy-oracle",
+  "attributes": [
+    {
+      "trait_type": "Network",
+      "value": "X1 Mainnet"
+    },
+    {
+      "trait_type": "Max Supply",
+      "value": "1000000"
+    },
+    {
+      "trait_type": "Emission",
+      "value": "4 years"
+    },
+    {
+      "trait_type": "Source",
+      "value": "Radioactive decay"
+    }
+  ]
+}

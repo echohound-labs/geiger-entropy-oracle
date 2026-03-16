@@ -1,5 +1,5 @@
 # ☢️ Geiger Entropy Oracle
-### The World's First Physical Entropy VRF+VDF Oracle on X1 Blockchain
+### The World's First Physical Entropy Oracle with VDF-secured Randomness on X1 Blockchain
 **True randomness sourced from quantum mechanical radioactive decay**
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
@@ -16,7 +16,7 @@ Oracle State:  BygMTZ1oLBD9tDmssnt9LkNT7BEd2PCJBCzurwtMuTqm
 Entropy Pool:  GDECYXCXietabJs9Y1baKzD3t4VFBw4eZWPnvYenyi77
 Node PDA:      z4Psp8qVfP4t3jiWHE29rrisTPMC78tu8LmDhRSEL3s
 Submissions:   7,000+ quantum decay events on-chain
-Version:       v3 — VRF + VDF
+Version:       v3 — VDF-secured Physical Entropy
 ```
 
 [📄 Read the Whitepaper](docs/whitepaper.md) | [🔍 Explorer](https://explorer.mainnet.x1.xyz/address/BxUNg2yo5371BQMZPkfcxdCptFRDHkhvEXNM1QNPBRYU) | [💬 Telegram](https://t.me/+axtvX9GbsnJkMGRh)
@@ -36,14 +36,14 @@ Blockchains are deterministic computers. Every node must produce identical outpu
 
 Radioactive decay is governed by quantum mechanics. It is fundamentally unpredictable — not just computationally hard, but physically impossible to predict. No amount of compute power can tell you when the next atom will decay.
 
-The Geiger Entropy Oracle captures this physical randomness using a GMC-500 Geiger counter, processes it through a Wesolowski VDF for cryptographic tamper-resistance, and posts it on-chain to X1 — where any smart contract can request a provably fair random number.
+Entropy is derived from the time between decay events (Δt), which follows a Poisson process and is fundamentally unpredictable. The Geiger Entropy Oracle captures this physical randomness using a GMC-500 Geiger counter, processes it through a Wesolowski VDF for cryptographic tamper-resistance, and posts it on-chain to X1 — where any smart contract can request a provably fair random number.
 
 > "The chain of proof becomes: Physical decay (uncontrollable) → seed committed → VDF locks it in time → verifiable output. No one — including the operator — could have manipulated the result once the decay event was recorded."
 > — Theo, X1 Community Architect
 
 ---
 
-## Architecture — v3 (VRF + VDF)
+## Architecture — v3 (VDF-secured Physical Entropy)
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │                    GMC-500+ Geiger Counter                   │
@@ -75,13 +75,13 @@ The Geiger Entropy Oracle captures this physical randomness using a GMC-500 Geig
             Your dApp: NFT mints, lotteries, games...
 ```
 
-### Why VRF + VDF?
+### Why VDF-secured Physical Entropy?
 ```
-VRF alone:  "Trust me I didn't cheat"
-VRF + VDF:  "Here's a cryptographic proof cheating was impossible"
+Signature alone: "Trust me I did not cheat"
+VDF-secured Physical Entropy:  "Here's a cryptographic proof cheating was impossible"
 
 Physical decay  = quantum unpredictable
-VDF delay       = manipulation window = zero
+VDF enforces minimum delay, preventing manipulation after entropy capture
 Ed25519 signed  = verifiable on-chain
 ```
 
@@ -257,7 +257,7 @@ Live:     March 16, 2026
 ```
 geiger-entropy-oracle/
 ├── entropy-contract/     Anchor smart contract (Rust)
-├── entropy-daemon/       Python entropy daemon (VRF+VDF)
+├── entropy-daemon/       Python entropy daemon (VDF-secured)
 └── docs/
     └── whitepaper.md     Full technical whitepaper
 ```
