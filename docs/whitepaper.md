@@ -111,9 +111,10 @@ Radioactive decay event detected
 Inter-event timing (Δt) extracted
 ↓
 SHA256(Δt + timestamp + CPM + CPS) = raw seed
+Each decay event produces a 256-bit entropy seed derived from physical quantum processes, not software-generated randomness.
 ↓
 Wesolowski VDF(seed, dynamic_iters)
-= delayed output + verifiable proof
+= time-locked, tamper-resistant output + verifiable proof
 ↓
 SHA256(VDF output) = final seed
 ↓
@@ -274,13 +275,14 @@ Mint Control: Oracle program only
 ```
 Total: 1,000,000 RADS over 4 years
 
-Year 1: 400,000 RADS (40%) — highest rewards for early nodes
-Year 2: 300,000 RADS (30%)
-Year 3: 200,000 RADS (20%)
-Year 4: 100,000 RADS (10%)
+Year 1: 250,000 RADS (25%) — highest rewards for early nodes
+Year 2: 250,000 RADS (25%)
+Year 3: 250,000 RADS (25%)
+Year 4: 250,000 RADS (25%)
 
 = ~685 RADS/day per node (background radiation)
 = 1 RADS per ~42 decay events
+= 250,025 RADS per year per node at background radiation
 
 After 4 years:
 → Hard cap reached
@@ -566,6 +568,64 @@ Version 2.2 — March 2026
 
 ---
 
+## Appendix A — Why VDF Makes a Single Node Trustworthy
+
+Contributed by Theo during public technical review, March 16, 2026:
+
+"Without VDF, a single-node oracle has a fundamental trust problem: how do we know the operator did not just pick a favorable number?
+
+VDF flips that. It cryptographically proves:
+
+1. The input was committed first — you cannot choose the seed after seeing what output you want
+2. The computation took real sequential time — no amount of parallel hardware lets you skip ahead
+3. The result was inevitable — given that seed and those iterations, there was only one possible output
+
+The chain of proof becomes:
+
+Physical decay (uncontrollable)
+→ seed committed
+→ VDF locks it in time
+→ verifiable output
+
+No one — including the operator — could have manipulated the result once the decay event was recorded. The physics happened, the seed was set, and the VDF made it provably tamper-proof.
+
+It is the difference between:
+'Trust me, I did not cheat'
+vs
+'Here is a cryptographic proof that cheating was physically impossible'
+
+The caveat: VDF legitimizes the process, not the hardware itself. The Geiger counter still needs to be real — VDF cannot compensate for a fake sensor. But assuming the hardware is honest, VDF makes a single node as trustworthy as a multi-node committee for randomness generation. That is actually a pretty rare property. Most single-node oracles cannot claim it."
+
+— Theo, X1 Community Architect
+
+---
+
+## Appendix B — The Core Design Insight
+
+Contributed by Theo, X1 Community Architect:
+
+"Single node + VDF = already trustworthy.
+The trust floor is already met at 1 node.
+
+Additional nodes add:
+- Redundancy — oracle stays live if one node goes down
+- Decentralization — harder to pressure any single operator
+- Entropy diversity — multiple independent physical sources
+- Economic credibility — harder to say it is just one guy
+- Perception — ecosystem looks more robust to dapp builders
+
+You do not need more nodes to be usable.
+You want more nodes to be unstoppable.
+
+Version 1: Single node, VDF-proven, open for business
+Version 2: Multi-node network, same interface, stronger guarantees
+
+Same API, same get_randomness() call — the underlying
+network gets stronger over time while dapp code never changes.
+That is the right abstraction layer."
+
+— Theo, X1 Community Architect
+
 ## Appendix C — Hardware Trust Assumption
 
 The GMC-500+ is a commercial off-the-shelf Geiger counter available to anyone for ~$100 from GQ Electronics. The daemon software is fully open source and auditable by anyone on GitHub.
@@ -744,62 +804,4 @@ Value increases over time ☢️
 
 
 ---
-
-## Appendix A — Why VDF Makes a Single Node Trustworthy
-
-Contributed by Theo during public technical review, March 16, 2026:
-
-"Without VDF, a single-node oracle has a fundamental trust problem: how do we know the operator did not just pick a favorable number?
-
-VDF flips that. It cryptographically proves:
-
-1. The input was committed first — you cannot choose the seed after seeing what output you want
-2. The computation took real sequential time — no amount of parallel hardware lets you skip ahead
-3. The result was inevitable — given that seed and those iterations, there was only one possible output
-
-The chain of proof becomes:
-
-Physical decay (uncontrollable)
-→ seed committed
-→ VDF locks it in time
-→ verifiable output
-
-No one — including the operator — could have manipulated the result once the decay event was recorded. The physics happened, the seed was set, and the VDF made it provably tamper-proof.
-
-It is the difference between:
-'Trust me, I did not cheat'
-vs
-'Here is a cryptographic proof that cheating was physically impossible'
-
-The caveat: VDF legitimizes the process, not the hardware itself. The Geiger counter still needs to be real — VDF cannot compensate for a fake sensor. But assuming the hardware is honest, VDF makes a single node as trustworthy as a multi-node committee for randomness generation. That is actually a pretty rare property. Most single-node oracles cannot claim it."
-
-— Theo, X1 Community Architect
-
----
-
-## Appendix B — The Core Design Insight
-
-Contributed by Theo, X1 Community Architect:
-
-"Single node + VDF = already trustworthy.
-The trust floor is already met at 1 node.
-
-Additional nodes add:
-- Redundancy — oracle stays live if one node goes down
-- Decentralization — harder to pressure any single operator
-- Entropy diversity — multiple independent physical sources
-- Economic credibility — harder to say it is just one guy
-- Perception — ecosystem looks more robust to dapp builders
-
-You do not need more nodes to be usable.
-You want more nodes to be unstoppable.
-
-Version 1: Single node, VDF-proven, open for business
-Version 2: Multi-node network, same interface, stronger guarantees
-
-Same API, same get_randomness() call — the underlying
-network gets stronger over time while dapp code never changes.
-That is the right abstraction layer."
-
-— Theo, X1 Community Architect
 
