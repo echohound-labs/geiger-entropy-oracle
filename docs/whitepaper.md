@@ -243,7 +243,7 @@ Network:       X1 Mainnet
 RPC:           https://rpc.mainnet.x1.xyz
 Live since:    March 16, 2026
 Submissions:   7,000+ and counting
-Version:       v3 (VRF+VDF)
+Version:       v3 (VDF-secured Physical Entropy)
 ```
 
 ---
@@ -401,7 +401,7 @@ register_node() on X1
 ✓ REST API
 ✓ Anchor program deployed on X1 mainnet
 ✓ 7,000+ entropy transactions live
-✓ Full VRF cycle tested on mainnet
+✓ Full randomness cycle tested on mainnet
 ✓ Whitepaper published
 ✓ Public technical review (Theo, Owl, X1 community)
 ```
