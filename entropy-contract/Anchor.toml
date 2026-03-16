@@ -3,10 +3,10 @@ seeds = true
 skip-lint = false
 
 [programs.localnet]
-geiger_entropy = "GeiGR4nd0mXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+geiger_entropy = "BxUNg2yo5371BQMZPkfcxdCptFRDHkhvEXNM1QNPBRYU"
 
 [programs.devnet]
-geiger_entropy = "GeiGR4nd0mXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+geiger_entropy = "BxUNg2yo5371BQMZPkfcxdCptFRDHkhvEXNM1QNPBRYU"
 
 [registry]
 url = "https://api.apr.dev"
