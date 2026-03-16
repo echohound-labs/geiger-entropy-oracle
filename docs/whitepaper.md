@@ -1,7 +1,7 @@
 # ☢️ Geiger Entropy Oracle & RADS Token
 ## Proof of Physical Entropy on X1 Blockchain
 ### Echo Hound Labs — March 2026
-### Version 2.0
+### Version 2.2
 
 ---
 
@@ -27,6 +27,8 @@ This whitepaper contains forward-looking statements about planned features and r
 ## Abstract
 
 Echo Hound Labs presents the world's first Proof of Physical Entropy (PoPhE) primitive — a hybrid oracle combining quantum mechanical radioactive decay with on-chain verification. True randomness is physically impossible to predict, and now permanently verifiable on X1 blockchain.
+
+The protocol is live on X1 mainnet today. Any dApp can call get_randomness() right now and receive a verified, unbiasable random value backed by quantum physics.
 
 Architecture reviewed and validated by X1 community contributors including Theo and Owl of Atena.
 
@@ -124,14 +126,114 @@ Stored in rolling entropy pool
 Available to any smart contract
 ```
 
-### 2.4 Community Architecture Insight
+### 2.4 Why This Works Today — Single Node + VDF
 
-"The node operators ARE the subnet in a sense — they form their own p2p layer, aggregate entropy, and post to X1. That's functionally similar to an optimistic rollup model without formally being one."
+The VDF layer is what makes a single honest node cryptographically sufficient for dApp use right now.
+
+As explained by Theo during public technical review:
+
+"Without VDF, a single-node oracle has a fundamental trust problem: how do we know the operator did not just pick a favorable number?
+
+VDF flips that. It cryptographically proves:
+
+1. The input was committed first — you cannot choose the seed after seeing what output you want
+2. The computation took real sequential time — no amount of parallel hardware lets you skip ahead
+3. The result was inevitable — given that seed and those iterations, there was only one possible output
+
+The chain of proof becomes:
+
+Physical decay (uncontrollable)
+→ seed committed
+→ VDF locks it in time
+→ verifiable output
+
+No one — including the operator — could have manipulated the result once the decay event was recorded. The physics happened, the seed was set, and the VDF made it provably tamper-proof.
+
+It is the difference between:
+'Trust me, I did not cheat'
+vs
+'Here is a cryptographic proof that cheating was physically impossible'
+
+Assuming the hardware is honest, VDF makes a single node as trustworthy as a multi-node committee for randomness generation. That is actually a pretty rare property. Most single-node oracles cannot claim it."
+
+— Theo, X1 Community Architect
+
+### 2.5 Why More Nodes Make It Unstoppable
+
+"The trust floor is already met at 1 node. Additional nodes add:
+
+- Redundancy — oracle stays live if one node goes down
+- Decentralization — harder to pressure any single operator
+- Entropy diversity — multiple independent physical sources
+- Economic credibility — harder to say it is just one guy
+- Perception — ecosystem looks more robust to dapp builders
+
+You do not need more nodes to be usable.
+You want more nodes to be unstoppable."
+
+— Theo, X1 Community Architect
+```
+Version 1 (now):
+Single node, VDF-proven, open for business
+
+Version 2 (RADS token):
+Multi-node network, same interface, stronger guarantees
+
+Same API forever:
+get_randomness() — never changes for dApp builders
+The underlying network gets stronger over time
+while dApp code never needs to change
+```
+
+### 2.6 Community Architecture Insight
+
+"The node operators ARE the subnet in a sense — they form their own p2p layer, aggregate entropy, and post to X1. That is functionally similar to an optimistic rollup model without formally being one."
+
 — Theo, X1 Community Architect
 
 ---
 
-## 3. Current Deployment
+## 3. Use It Today
+
+Any dApp on X1 can integrate right now:
+```javascript
+// Request randomness — that is literally it
+const userSeed = crypto.randomBytes(32);
+await program.methods
+    .requestRandomness(Array.from(userSeed))
+    .accounts({...})
+    .rpc();
+
+// Fulfill and read result
+await program.methods
+    .fulfillRandomness()
+    .accounts({...})
+    .rpc();
+
+const request = await program.account
+    .randomnessRequest.fetch(requestPDA);
+console.log('Random result:',
+    Buffer.from(request.result).toString('hex'));
+```
+
+**What dApp builders get out of the box:**
+- Call get_randomness() and receive a verified unbiasable random value
+- VDF proof attached — verify it yourself or trust on-chain verification
+- No need to understand Geiger counters or physics — just use the output
+- Same interface regardless of how many nodes are in the network
+
+**Use cases live right now:**
+```
+Lotteries and raffles  → provably fair draws
+On-chain games         → unbiasable dice, cards, loot drops
+NFT trait generation   → random attribute assignment at mint
+DAO selection          → picking winners, committee members
+DeFi                   → random liquidation ordering
+```
+
+---
+
+## 4. Current Deployment
 ```
 Program ID:    BxUNg2yo5371BQMZPkfcxdCptFRDHkhvEXNM1QNPBRYU
 Oracle State:  BygMTZ1oLBD9tDmssnt9LkNT7BEd2PCJBCzurwtMuTqm
@@ -146,15 +248,17 @@ Version:       v3 (VRF+VDF)
 
 ---
 
-## 4. RADS Token
+## 5. RADS Token
 
-### 4.1 Overview
+### 5.1 Overview
 
 RADS is a novel token primitive where supply is controlled entirely by radioactive decay. No team can mint extra tokens. No inflation schedule exists. The universe controls supply.
 
 "Only 1,000,000 RADS. Mined by radioactive decay over exactly 4 years. Then fixed forever."
 
-### 4.2 Token Properties
+The purpose of RADS is simple: incentivize more node operators to join the network. More nodes means more decentralization, more redundancy, and a stronger protocol.
+
+### 5.2 Token Properties
 ```
 Name:         RADS
 Symbol:       RADS
@@ -166,70 +270,80 @@ Decimals:     6
 Mint Control: Oracle program only
 ```
 
-### 4.3 Emission Schedule
+### 5.3 Emission Schedule
 ```
 Total: 1,000,000 RADS over 4 years
 
-Year 1: 400,000 RADS (40%)
+Year 1: 400,000 RADS (40%) — highest rewards for early nodes
 Year 2: 300,000 RADS (30%)
 Year 3: 200,000 RADS (20%)
 Year 4: 100,000 RADS (10%)
 
-= ~685 RADS/day (1 node, background radiation)
+= ~685 RADS/day per node (background radiation)
 = 1 RADS per ~42 decay events
 
-After 4 years: fixed supply forever
+After 4 years:
+→ Hard cap reached
+→ No new RADS ever minted
+→ Oracle continues running forever
+→ Fixed supply = deflationary as dApps burn
 ```
 
-### 4.4 Per-Node Emission Cap
+### 5.4 Per-Node Emission Cap
 ```
 Max CPM counted: 100 CPM per node
+Above 100 CPM: same reward rate
 Purpose: prevent hot specimen dominance
 Result: incentivizes MORE nodes not hotter nodes
 ```
 
-### 4.5 Distribution Per Event
+### 5.5 Why Run a Node Early
 ```
-Each decay event reward:
-├── 70% → Node operator wallet
-├── 20% → Protocol treasury
-└── 10% → Burned (deflationary)
+Year 1 rewards: 400,000 RADS (40% of all RADS ever)
+Year 4 rewards: 100,000 RADS (10% of all RADS ever)
+
+Early node operators earn 4x more than late ones
+Hardware cost is the same: ~$155
+The incentive to join early is massive ☢️
 ```
 
-### 4.6 Staking Tiers
+### 5.6 Token Utility — v1 (MVP)
 ```
-Bronze:  100  RADS staked = 1.0x rewards
-Silver:  500  RADS staked = 1.5x rewards
-Gold:    1000 RADS staked = 2.0x rewards
-Genesis: 5000 RADS staked = 3.0x rewards
+Mine:   Run a Geiger node → earn RADS automatically
+        Every decay event = RADS minted to your wallet
+
+Spend:  dApps burn RADS → request randomness
+        Creates deflationary pressure on supply
 ```
 
-### 4.7 Token Utility
+### 5.7 Token Utility — v2 (Roadmap)
 ```
-Mine:     Run a Geiger node → earn RADS
-Stake:    Lock RADS → earn more RADS
-Spend:    dApps burn RADS → request randomness
-Lose:     Submit bad data → slashed
-Govern:   Stake to vote on protocol changes
+Stake:  Lock RADS → earn share of protocol fees
+Slash:  Submit bad data → lose staked RADS
+Govern: Stake to vote on protocol upgrades
+Tier:   Higher stake = higher node reputation
+        Higher reputation = priority fulfillment
 ```
 
-### 4.8 The Flywheel
+Staking and governance are intentionally excluded from v1. The goal right now is to get the token live and start incentivizing node operators as quickly as possible. Complexity comes later when the network has grown.
+
+### 5.8 The Flywheel
 ```
 More nodes → more RADS mined
-More RADS staked → more security
-More security → more dApps
+More nodes → more decentralization
+More decentralization → more dApps trust it
 More dApps → more RADS burned
 More burned → more scarce
 More scarce → higher value
 Higher value → more nodes join
-→ repeat
+→ repeat ♻️
 ```
 
 ---
 
-## 5. Node Economics
+## 6. Node Economics
 
-### 5.1 Hardware Requirements
+### 6.1 Hardware Requirements
 ```
 GMC-500+ Geiger Counter: ~$100
 Raspberry Pi 4:          ~$35
@@ -237,15 +351,23 @@ MicroSD + power:         ~$20
 Total:                   ~$155 one time
 ```
 
-### 5.2 Setup
+### 6.2 Any Hardware Works
 ```
-git clone github.com/echohound-labs/geiger-entropy-oracle
-./install.sh
-register_node() on X1
-→ start earning RADS automatically
+USB direct to PC/laptop  ✓
+Raspberry Pi 4           ✓
+Any Linux machine        ✓
+Old laptop               ✓
+
+The Geiger counter connects via USB
+Daemon runs on your machine
+Entropy posts directly to X1
+No data center needed
+No validator status required
+Radioactive source never leaves your location
+Only cryptographic hashes touch the internet
 ```
 
-### 5.3 Earnings Model (Year 1)
+### 6.3 Earnings Model (Year 1)
 ```
 Background radiation (20 CPM):
 ├── ~28,800 decay events/day
@@ -258,43 +380,54 @@ Boosted node (100 CPM max):
 └── Maximum earning rate
 ```
 
+### 6.4 Setup (Coming in Phase 2)
+```
+git clone github.com/echohound-labs/geiger-entropy-oracle
+./install.sh
+register_node() on X1
+→ start earning RADS automatically
+```
+
 ---
 
-## 6. Roadmap
+## 7. Roadmap
 
-### Phase 1 — Genesis (Complete)
+### Phase 1 — Genesis (Complete ✅)
 ```
 ✓ GMC-500 hardware integration
 ✓ Entropy extraction (Δt timing)
-✓ VDF layer (Wesolowski dynamic)
+✓ VDF layer (Wesolowski dynamic iterations)
 ✓ Ed25519 signing
 ✓ REST API
-✓ Anchor program on X1 mainnet
-✓ 7,000+ transactions live
+✓ Anchor program deployed on X1 mainnet
+✓ 7,000+ entropy transactions live
 ✓ Full VRF cycle tested on mainnet
+✓ Whitepaper published
+✓ Public technical review (Theo, Owl, X1 community)
 ```
 
 ### Phase 2 — RADS Token (Q2 2026)
 ```
-□ SPL token creation
-□ Mint integration in oracle contract
-□ Staking contract
-□ Node reward distribution
-□ Emission cap enforcement
+□ RADS SPL token creation
+□ Mint on every decay event
+□ 4 year emission schedule
+□ Per-node CPM cap (100 CPM max)
+□ Hard cap enforcement (1,000,000 RADS)
+□ Node operator onboarding guide
 □ Token launch on X1
 ```
 
-### Phase 3 — Multi-Node Oracle Network (Q3 2026)
+### Phase 3 — Multi-Node + Staking (Q3 2026)
 ```
 □ Multiple independent node support
 □ Threshold aggregation (3-of-5 nodes)
 □ Node reputation system
+□ Staking contract
+□ Slashing mechanism
 □ Merkle tree entropy batching
 │  ├── Batch 100 events → 1 on-chain tx
 │  ├── 100x cheaper at scale
-│  ├── Proofs available off-chain
 │  └── Full auditability preserved
-□ Modular entropy sources
 □ On-chain RANDAO integration
 ```
 
@@ -305,84 +438,40 @@ Boosted node (100 CPM max):
 □ Dedicated entropy subnet
 □ Bridge randomness to X1 mainnet
 □ DAO governance
+□ Frontend dashboard
 ```
 
 ---
 
-## 7. Security Analysis
+## 8. Security Analysis
 
-### 7.1 Attack Vectors
+### 8.1 Attack Vectors
 
 | Attack | Current Mitigation | Phase 3 Mitigation |
 |--------|-------------------|-------------------|
-| Fake Geiger data | Node reputation + stake | Multi-node threshold |
+| Fake Geiger data | Node reputation | Multi-node threshold |
 | Withhold/retry | VDF delay | VDF + threshold |
 | Validator censorship | Multiple submissions | Multi-node redundancy |
 | Hot specimen dominance | 100 CPM cap | Same |
-| Single node bias | VDF layer | RANDAO aggregation |
+| Single node bias | VDF proves tamper-proof | RANDAO aggregation |
 | Upgrade authority abuse | Deployer wallet | Transfer to DAO |
 
-### 7.2 Current Limitations
+### 8.2 Current Limitations — Honest
 ```
-Single node = operator trust required
+Single node = hardware trust required
 VDF is off-chain computation
 Ed25519 full on-chain verification = TODO
 No slashing implemented yet
 Upgrade authority = single wallet
 ```
 
-### 7.3 Progressive Trust Model
+### 8.3 Progressive Trust Model
 ```
 Phase 1: Trust Echo Hound Labs Genesis Node
-Phase 2: Trust RADS-staked node operators
+         + VDF cryptographic proof
+Phase 2: Trust RADS-incentivized node operators
 Phase 3: Trust 3-of-5 threshold consensus
 Phase 4: Trust subnet validator set
-```
-
----
-
-## 8. Integration Guide
-
-### 8.1 Request Randomness
-```javascript
-const userSeed = crypto.randomBytes(32);
-const tx1 = await program.methods
-    .requestRandomness(Array.from(userSeed))
-    .accounts({...})
-    .rpc();
-
-const tx2 = await program.methods
-    .fulfillRandomness()
-    .accounts({...})
-    .rpc();
-
-const request = await program.account
-    .randomnessRequest.fetch(requestPDA);
-console.log('Random result:',
-    Buffer.from(request.result).toString('hex'));
-```
-
-### 8.2 Use Cases
-```
-NFT mints        → fair trait assignment
-Lotteries        → provably fair winners
-On-chain games   → unpredictable outcomes
-DAOs             → random committee selection
-DeFi             → random liquidation ordering
-Raffles          → verifiable winner selection
-```
-
-### 8.3 Fee Structure
-```
-Free tier:
-→ Call request_randomness() directly
-→ Pay only X1 gas fees
-
-RADS tier (Phase 2):
-→ Burn 1 RADS per request
-→ Guaranteed fresh physical entropy
-→ Priority fulfillment
-→ On-chain proof of entropy source
 ```
 
 ---
@@ -399,12 +488,13 @@ RADS tier (Phase 2):
 | Deployed on X1 | No | No | Yes |
 | Token Incentives | LINK | SBX | RADS |
 | Node Cost | High | High | $155 |
+| Usable today on X1 | No | No | Yes |
 
 ---
 
 ## 10. The Genesis Node
 ```
-Location:   Miami, Florida, USA
+Location:   Florida, USA
 Operator:   Skywalker (@skywalker12345678)
 Org:        Echo Hound Labs (@EchoHoundX)
 Hardware:   GMC-500+ Geiger Counter
@@ -414,7 +504,7 @@ Wallet:     HGFisVbULNKqogtPuGTfcHG9y6i5nboZabYwifkiiodo
 Live since: March 16, 2026
 ```
 
-The same quantum randomness that has governed matter since the Big Bang now secures X1 smart contracts.
+The same quantum randomness that has governed matter since the Big Bang now secures X1 smart contracts. 🦴
 
 ---
 
@@ -422,19 +512,23 @@ The same quantum randomness that has governed matter since the Big Bang now secu
 
 "The laws of physics are the most trustless oracle that exists."
 
-The Geiger Entropy Oracle combines quantum unpredictability with on-chain verifiability. RADS token creates the economic incentive layer that transforms individual node operators into a decentralized entropy network — where the universe itself controls token supply.
+The Geiger Entropy Oracle is live on X1 mainnet today. Any dApp can integrate right now and receive provably fair randomness backed by quantum mechanical radioactive decay — with a VDF cryptographic proof that manipulation was physically impossible.
+
+RADS token transforms node operators into entropy miners, creating a self-sustaining economic loop where the universe itself controls token supply.
 
 The node operators ARE the subnet.
+You do not need more nodes to be usable.
+You want more nodes to be unstoppable. ☢️
 
 ---
 
 ## Credits
 
 Architecture review and technical insights:
-- Theo — VDF/RANDAO/L2 architecture, Merkle batching
+- Theo — VDF design insight, RANDAO/L2 architecture, Merkle batching
 - Owl of Atena — on-chain vs off-chain distinction
 - Marat — X1 ecosystem context
-- X1 Community — public technical review
+- X1 Community — public technical review on March 16, 2026
 
 ---
 
@@ -468,4 +562,4 @@ Explorer:  explorer.mainnet.x1.xyz
 
 Echo Hound Labs — Building X1 Infrastructure from the ground up
 
-Version 2.0 — March 2026
+Version 2.2 — March 2026
