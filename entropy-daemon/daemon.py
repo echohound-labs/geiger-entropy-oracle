@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
 """
-Geiger Entropy Oracle Daemon
+Geiger Entropy Oracle Daemon v3
 Reads GMC-500 via direct serial, extracts physical entropy,
+applies VDF (Verifiable Delay Function) for manipulation resistance,
 submits on-chain to X1, serves via REST API.
 
-Author: Skywalker (@skywalker12345678)
+Author: Skywalker (@skywalker12345678) / Echo Hound Labs
 License: MIT
 """
 
-import asyncio
 import hashlib
 import json
 import logging
@@ -22,6 +22,7 @@ from typing import Optional
 
 import toml
 import uvicorn
+from chiavdf import create_discriminant, prove, verify_wesolowski
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
@@ -69,6 +70,55 @@ def sign_entropy(private_key: Ed25519PrivateKey, seed: bytes, timestamp: int) ->
     return private_key.sign(message)
 
 # ---------------------------------------------------------------------------
+# VDF (Verifiable Delay Function)
+# ---------------------------------------------------------------------------
+
+def get_vdf_iterations(cpm: int) -> int:
+    """Dynamic VDF iterations based on CPM.
+    Hotter source = faster decay = fewer iterations needed.
+    Ensures VDF completes before next decay event arrives.
+    """
+    if cpm < 20:
+        return 100000  # 0.34s — background radiation
+    elif cpm < 50:
+        return 50000   # 0.17s — mild source
+    elif cpm < 100:
+        return 20000   # 0.08s — hot source
+    else:
+        return 10000   # 0.04s — very hot source
+
+def compute_vdf(seed: bytes, cpm: int) -> tuple:
+    """Compute VDF proof from entropy seed.
+    Returns (vdf_output, vdf_proof, iters, discriminant).
+    The VDF delay prevents manipulation — output unknown until compute completes.
+    """
+    challenge = seed[:10]
+    initial_el = b"\x08" + b"\x00" * 99
+    iters = get_vdf_iterations(cpm)
+    discriminant = create_discriminant(challenge, 512)
+    result = prove(challenge, initial_el, 512, iters, "")
+    vdf_output = result[:100]
+    vdf_proof = result[100:200]
+    return vdf_output, vdf_proof, iters, discriminant
+
+def verify_vdf(seed: bytes, vdf_output: bytes, vdf_proof: bytes, iters: int) -> bool:
+    """Verify a VDF proof. Fast to verify, slow to compute."""
+    try:
+        challenge = seed[:10]
+        initial_el = b"\x08" + b"\x00" * 99
+        discriminant = create_discriminant(challenge, 512)
+        is_valid = verify_wesolowski(
+            str(discriminant),
+            initial_el,
+            vdf_output,
+            vdf_proof,
+            iters,
+        )
+        return is_valid
+    except Exception:
+        return False
+
+# ---------------------------------------------------------------------------
 # Entropy State
 # ---------------------------------------------------------------------------
 
@@ -90,10 +140,13 @@ class EntropyState:
         self.latest_usv_h: float = 0.0
         self.latest_timestamp: int = 0
         self.latest_signature: Optional[bytes] = None
+        self.latest_vdf_iters: int = 0
+        self.latest_vdf_time: float = 0.0
         self.total_submissions: int = 0
         self.lock = threading.Lock()
 
-    def update(self, seed: bytes, cpm: int, usv_h: float, signature: bytes):
+    def update(self, seed: bytes, cpm: int, usv_h: float,
+               signature: bytes, vdf_iters: int = 0, vdf_time: float = 0.0):
         with self.lock:
             self.pool.append(seed)
             if len(self.pool) > self.pool_size:
@@ -103,6 +156,8 @@ class EntropyState:
             self.latest_usv_h = usv_h
             self.latest_timestamp = int(time.time())
             self.latest_signature = signature
+            self.latest_vdf_iters = vdf_iters
+            self.latest_vdf_time = vdf_time
             self.total_submissions += 1
 
     @property
@@ -118,6 +173,8 @@ class EntropyState:
                 "usv_h": self.latest_usv_h,
                 "timestamp": self.latest_timestamp,
                 "signature": self.latest_signature.hex() if self.latest_signature else None,
+                "vdf_iters": self.latest_vdf_iters,
+                "vdf_time_ms": round(self.latest_vdf_time * 1000, 1),
                 "total_submissions": self.total_submissions,
             }
 
@@ -177,23 +234,36 @@ def serial_collector(cfg: dict, state: EntropyState, private_key: Ed25519Private
             if cps >= 1 and last_cps == 0:
                 if last_event_time is not None:
                     delta_ns = now_ns - last_event_time
-                    # Extract entropy from inter-event timing
-                    entropy_input = f"{delta_ns}-{now_ns}-{cpm}-{cps}".encode()
-                    seed = hashlib.sha256(entropy_input).digest()
-                    timestamp = int(now)
-                    signature = sign_entropy(private_key, seed, timestamp)
 
-                    state.update(seed, cpm, usv_h, signature)
+                    # Step 1: Extract raw entropy from inter-event timing
+                    entropy_input = f"{delta_ns}-{now_ns}-{cpm}-{cps}".encode()
+                    raw_seed = hashlib.sha256(entropy_input).digest()
+
+                    # Step 2: Apply VDF for manipulation resistance
+                    vdf_start = time.time()
+                    vdf_output, vdf_proof, vdf_iters, discriminant = compute_vdf(raw_seed, cpm)
+                    vdf_time = time.time() - vdf_start
+
+                    # Step 3: Final seed = SHA256(VDF output)
+                    final_seed = hashlib.sha256(vdf_output).digest()
+                    timestamp = int(now)
+                    signature = sign_entropy(private_key, final_seed, timestamp)
+
+                    state.update(final_seed, cpm, usv_h, signature, vdf_iters, vdf_time)
 
                     logger.info(
                         f"☢️  DECAY EVENT | Δt={delta_ns/1e9:.3f}s | "
                         f"CPM={cpm} | µSv/h={usv_h:.3f} | "
-                        f"seed={seed.hex()[:16]}..."
+                        f"seed={final_seed.hex()[:16]}... | "
+                        f"VDF={vdf_iters}iters/{vdf_time:.3f}s"
                     )
 
                     if cpm >= min_cpm:
                         entropy_queue.put({
-                            "seed": seed,
+                            "seed": final_seed,
+                            "vdf_output": vdf_output.hex(),
+                            "vdf_proof": vdf_proof.hex(),
+                            "vdf_iters": vdf_iters,
                             "cpm": cpm,
                             "timestamp": timestamp,
                             "signature": signature,
@@ -213,22 +283,9 @@ def serial_collector(cfg: dict, state: EntropyState, private_key: Ed25519Private
 # ---------------------------------------------------------------------------
 
 def onchain_submitter(cfg: dict, entropy_queue: queue.Queue, logger: logging.Logger):
-    """
-    Reads entropy events from the queue and submits them on-chain via
-    a Node.js helper script (avoids Python Solana SDK complexity).
-    """
     import subprocess
-    import tempfile
-
-    rpc_url = cfg["x1"]["rpc_url"]
-    program_id = cfg["x1"]["program_id"]
-    oracle_state = cfg["x1"]["oracle_state"]
-    entropy_pool = cfg["x1"]["entropy_pool"]
-    entropy_node = cfg["x1"]["entropy_node"]
-    keypair_path = os.path.expanduser(cfg["node"]["keypair_path"])
 
     submit_script = Path(__file__).parent / os.environ.get("SUBMIT_SCRIPT", "submit_entropy.js")
-
     logger.info("On-chain submitter ready — waiting for entropy events...")
 
     while True:
@@ -246,7 +303,7 @@ def onchain_submitter(cfg: dict, entropy_queue: queue.Queue, logger: logging.Log
             )
 
             if result.returncode == 0:
-                logger.info(f"✓ On-chain submission OK | CPM={cpm}")
+                logger.info(f"✓ On-chain submission OK | CPM={cpm} | VDF={event['vdf_iters']}iters")
                 logger.debug(result.stdout.strip())
             else:
                 logger.warning(f"On-chain submission failed: {result.stderr.strip()}")
@@ -263,8 +320,8 @@ def onchain_submitter(cfg: dict, entropy_queue: queue.Queue, logger: logging.Log
 
 app = FastAPI(
     title="Geiger Entropy Oracle",
-    description="Physical randomness oracle powered by GMC-500 radioactive decay",
-    version="2.0.0",
+    description="Physical randomness VRF+VDF oracle powered by GMC-500 radioactive decay",
+    version="3.0.0",
 )
 
 _state: Optional[EntropyState] = None
@@ -277,6 +334,8 @@ class EntropyResponse(BaseModel):
     usv_h: float
     timestamp: int
     signature: Optional[str]
+    vdf_iters: int
+    vdf_time_ms: float
     total_submissions: int
 
 class HealthResponse(BaseModel):
@@ -284,6 +343,7 @@ class HealthResponse(BaseModel):
     uptime_seconds: float
     total_submissions: int
     latest_cpm: int
+    vdf_iters: int
 
 @app.get("/entropy", response_model=EntropyResponse)
 async def get_entropy():
@@ -301,6 +361,7 @@ async def health():
         uptime_seconds=round(time.time() - _start_time, 1),
         total_submissions=_state.total_submissions if _state else 0,
         latest_cpm=_state.latest_cpm if _state else 0,
+        vdf_iters=_state.latest_vdf_iters if _state else 0,
     )
 
 # ---------------------------------------------------------------------------
@@ -312,7 +373,7 @@ def main():
 
     cfg = load_config()
     logger = setup_logging(cfg["daemon"].get("log_level", "INFO"))
-    logger.info("☢️  Geiger Entropy Oracle v2 starting up")
+    logger.info("☢️  Geiger Entropy Oracle v3 — VRF+VDF starting up")
 
     private_key = load_keypair(cfg["node"]["keypair_path"])
     logger.info("✓ Keypair loaded")
