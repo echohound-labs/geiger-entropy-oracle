@@ -182,3 +182,15 @@ The same quantum randomness that has governed matter since the Big Bang now secu
 ## License
 
 MIT © Skywalker (@skywalker12345678)
+
+## Mainnet Deployment
+
+| Account | Address |
+|---------|---------|
+| Program ID | `BxUNg2yo5371BQMZPkfcxdCptFRDHkhvEXNM1QNPBRYU` |
+| Oracle State | `BygMTZ1oLBD9tDmssnt9LkNT7BEd2PCJBCzurwtMuTqm` |
+| Entropy Pool | `GDECYXCXietabJs9Y1baKzD3t4VFBw4eZWPnvYenyi77` |
+| Node PDA | `z4Psp8qVfP4t3jiWHE29rrisTPMC78tu8LmDhRSEL3s` |
+| Network | X1 Mainnet |
+| RPC | https://rpc.mainnet.x1.xyz |
+| Explorer | https://explorer.mainnet.x1.xyz/address/BxUNg2yo5371BQMZPkfcxdCptFRDHkhvEXNM1QNPBRYU |
