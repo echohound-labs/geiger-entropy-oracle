@@ -167,6 +167,9 @@ Year 4: 100,000 RADS (10%)
 
 ## Run a Node
 
+📖 **[Full Setup Guide](docs/setup-guide.md)** — Windows WSL2, Raspberry Pi, troubleshooting
+
+
 **Hardware:**
 ```
 GMC-500+ Geiger Counter: ~$100
