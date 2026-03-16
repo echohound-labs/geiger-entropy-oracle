@@ -563,3 +563,53 @@ Explorer:  explorer.mainnet.x1.xyz
 Echo Hound Labs — Building X1 Infrastructure from the ground up
 
 Version 2.2 — March 2026
+
+---
+
+## Appendix C — Hardware Trust Assumption
+
+The GMC-500+ is a commercial off-the-shelf Geiger counter available to anyone for ~$100 from GQ Electronics. The daemon software is fully open source and auditable by anyone on GitHub.
+
+**The hardware trust assumption is:**
+> The operator is running genuine GMC-500 hardware with unmodified open source software.
+
+**Why this is reasonable:**
+```
+✓ GMC-500 is a real certified Geiger counter
+✓ Open source daemon — anyone can audit it
+✓ Real serial protocol — publicly documented
+✓ Poisson distribution — statistically verifiable
+✓ Anyone can buy same hardware and verify
+✓ Not a black box — fully reproducible
+```
+
+**What VDF cannot fix:**
+```
+VDF proves the seed was not manipulated
+after it was generated.
+
+VDF cannot prove:
+- The USB device is actually a GMC-500
+- The data is not software-generated
+- The Geiger counter is pointed at something radioactive
+```
+
+**How this gets fixed over time:**
+```
+Phase 1: Trust one operator's hardware
+         → mitigated by open source code
+         → mitigated by statistical verification
+
+Phase 3: Trust that not ALL operators
+         are simultaneously dishonest
+         → multiple independent locations
+         → multiple independent hardware units
+         → collusion becomes economically irrational
+
+Phase 4: Stake-weighted participation
+         → operators have economic skin in the game
+         → dishonesty = financial loss
+```
+
+The open source nature of the project means anyone can run the exact same stack and verify the results independently. This is the strongest possible mitigation for hardware trust at single-node scale.
+
