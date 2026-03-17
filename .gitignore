@@ -4,3 +4,4 @@ target/
 logs/
 __pycache__/
 wallet.json
+.geiger_device_fingerprint
