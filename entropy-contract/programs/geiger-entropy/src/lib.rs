@@ -438,3 +438,78 @@ pub struct PendingCommitment {
     pub revealed: bool,
     pub bump: u8,
 }
+
+// ---------------------------------------------------------------------------
+// Commit-Reveal Account Contexts
+// ---------------------------------------------------------------------------
+
+#[derive(Accounts)]
+#[instruction(commitment_hash: [u8; 32], sequence: u64)]
+pub struct CommitEntropy<'info> {
+    #[account(
+        mut,
+        seeds = [ORACLE_STATE_SEED],
+        bump = oracle_state.bump,
+    )]
+    pub oracle_state: Account<'info, OracleState>,
+    #[account(
+        init_if_needed,
+        payer = operator,
+        space = 8 + PendingCommitment::INIT_SPACE,
+        seeds = [COMMITMENT_SEED, operator.key().as_ref()],
+        bump,
+    )]
+    pub pending_commitment: Account<'info, PendingCommitment>,
+    #[account(mut)]
+    pub operator: Signer<'info>,
+    pub system_program: Program<'info, System>,
+}
+
+#[derive(Accounts)]
+pub struct RevealEntropy<'info> {
+    #[account(
+        mut,
+        seeds = [ORACLE_STATE_SEED],
+        bump = oracle_state.bump,
+    )]
+    pub oracle_state: Account<'info, OracleState>,
+    #[account(
+        mut,
+        seeds = [ENTROPY_POOL_SEED],
+        bump = entropy_pool.bump,
+    )]
+    pub entropy_pool: Account<'info, EntropyPool>,
+    #[account(
+        mut,
+        seeds = [COMMITMENT_SEED, operator.key().as_ref()],
+        bump = pending_commitment.bump,
+        constraint = pending_commitment.operator == operator.key(),
+    )]
+    pub pending_commitment: Account<'info, PendingCommitment>,
+    #[account(
+        mut,
+        seeds = [ENTROPY_NODE_SEED, operator.key().as_ref()],
+        bump = entropy_node.bump,
+        has_one = operator,
+    )]
+    pub entropy_node: Account<'info, EntropyNode>,
+    #[account(mut)]
+    pub operator: Signer<'info>,
+    pub system_program: Program<'info, System>,
+}
+
+#[derive(Accounts)]
+pub struct SlashMissedReveal<'info> {
+    #[account(
+        mut,
+        seeds = [COMMITMENT_SEED, operator.key().as_ref()],
+        bump = pending_commitment.bump,
+    )]
+    pub pending_commitment: Account<'info, PendingCommitment>,
+    /// CHECK: operator being slashed
+    #[account(mut)]
+    pub operator: AccountInfo<'info>,
+    #[account(mut)]
+    pub reporter: Signer<'info>,
+    pub system_program: Program<'info, System>,
+}
