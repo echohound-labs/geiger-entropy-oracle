@@ -805,3 +805,112 @@ Value increases over time ☢️
 
 ---
 
+
+---
+
+## Appendix E — Node Architecture Evolution
+
+### Current Architecture (Phase 1)
+```
+GMC-500 Geiger Counter
+→ USB → Local Machine
+→ daemon.py runs locally
+→ submits directly to X1
+```
+
+Simple and effective for a single genesis node.
+Hardware and blockchain logic run on same machine.
+
+### Phase 2 — Remote Relay Architecture
+
+As more node operators join the network a more
+flexible architecture becomes available:
+```
+Option A — Cloud Relay:
+GMC-500 + Raspberry Pi (anywhere)
+→ streams entropy data via internet
+→ cloud relay server receives stream
+→ relay computes VDF
+→ relay submits to X1
+= Geiger counter is a simple sensor
+= no Solana CLI needed on device
+= just needs internet connection
+= much easier for node operators
+```
+```
+Option B — Direct API:
+GMC-500 + local machine
+→ daemon.py runs locally
+→ POSTs entropy to relay API
+→ relay handles all blockchain logic
+= separation of hardware and chain
+= operator only manages hardware
+= relay handles everything else
+```
+```
+Option C — MQTT Stream (most elegant):
+GMC-500 + WiFi module ($50 device)
+→ streams raw CPS data via MQTT
+→ relay network receives
+→ aggregates multiple sources
+→ submits to X1
+= truly plug and play
+= no technical knowledge needed
+= just plug in and earn RADS
+```
+
+### Phase 3 — Redundant Relay Network
+```
+Multiple Geiger counters → Multiple relays
+                        → X1 mainnet
+
+If one relay goes down:
+→ others keep submitting
+→ oracle never goes offline
+
+If one Geiger goes down:
+→ others keep providing entropy
+→ pool stays fresh
+= truly robust and unstoppable
+```
+
+### Phase 4 — Subnet Validators
+
+As described by Theo:
+
+"The node operators ARE the subnet — they form
+their own p2p layer, aggregate entropy, and post
+to X1. That is functionally similar to an
+optimistic rollup model without formally being one."
+```
+Geiger node operators = subnet validators
+Stake RADS = participate in consensus
+Entropy aggregation = subnet block production
+Final randomness = bridged to X1 mainnet
+```
+
+### Why This Matters for Node Operators
+```
+Phase 1 (now):
+Need: PC + GMC-500 + Solana CLI
+Complexity: Medium
+Cost: ~$155
+
+Phase 2 (relay):
+Need: GMC-500 + Raspberry Pi + internet
+Complexity: Low
+Cost: ~$135
+No blockchain knowledge required
+
+Phase 3 (MQTT):
+Need: GMC-500 + WiFi module
+Complexity: Very low
+Cost: ~$50
+Just plug in and earn RADS ☢️
+```
+
+The long term vision is a network of hundreds of
+Geiger counters around the world — each one a
+$50 plug-and-play device streaming quantum entropy
+to X1 blockchain continuously.
+
