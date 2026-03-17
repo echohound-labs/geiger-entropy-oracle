@@ -21,6 +21,7 @@ from pathlib import Path
 from typing import Optional
 
 import toml
+from serial.tools import list_ports
 import uvicorn
 from chiavdf import create_discriminant, prove, verify_wesolowski
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
@@ -54,6 +55,64 @@ def setup_logging(level: str = "INFO") -> logging.Logger:
         ],
     )
     return logging.getLogger("geiger-entropy")
+
+
+# ---------------------------------------------------------------------------
+# Device Fingerprinting
+# ---------------------------------------------------------------------------
+
+FINGERPRINT_FILE = Path(__file__).parent / ".geiger_device_fingerprint"
+
+def get_device_fingerprint(port: str) -> str:
+    """Get unique fingerprint using GMC-500 internal serial + USB VID:PID."""
+    import serial as pyserial
+
+    # Get USB VID:PID
+    usb_info = "unknown:unknown"
+    for p in list_ports.comports():
+        if p.device == port:
+            usb_info = f"{p.vid}:{p.pid}"
+            break
+
+    # Get GMC-500 internal model + serial number
+    try:
+        ser = pyserial.Serial(port, 115200, timeout=2)
+        ser.write(b'<GETVER>>')
+        model = ser.read(14).decode(errors='ignore').strip()
+        ser.write(b'<GETSERIAL>>')
+        device_serial = ser.read(7).hex()
+        ser.close()
+    except Exception as e:
+        raise RuntimeError(f"Cannot read device identity: {e}")
+
+    fingerprint_data = f"{usb_info}:{model}:{device_serial}"
+    return hashlib.sha256(fingerprint_data.encode()).hexdigest()
+
+def verify_device_fingerprint(port: str, logger: logging.Logger) -> bool:
+    """Verify device matches stored fingerprint. Register if first run."""
+    try:
+        current = get_device_fingerprint(port)
+    except RuntimeError as e:
+        logger.error(f"Device fingerprint error: {e}")
+        return False
+
+    if FINGERPRINT_FILE.exists():
+        stored = FINGERPRINT_FILE.read_text().strip()
+        if current != stored:
+            logger.error(
+                f"🚨 DEVICE FINGERPRINT MISMATCH!\n"
+                f"   Expected: {stored[:32]}...\n"
+                f"   Got:      {current[:32]}...\n"
+                f"   Refusing to operate with unrecognized hardware!"
+            )
+            return False
+        logger.info(f"✓ Device fingerprint verified: {current[:16]}...")
+        return True
+    else:
+        FINGERPRINT_FILE.write_text(current)
+        logger.info(f"✓ Device fingerprint registered: {current[:16]}...")
+        logger.info(f"  Model: GMC-500 | USB: {port}")
+        return True
 
 # ---------------------------------------------------------------------------
 # Keypair
@@ -194,6 +253,12 @@ def serial_collector(cfg: dict, state: EntropyState, private_key: Ed25519Private
     baud = cfg["serial"]["baud"]
     poll_ms = cfg["serial"].get("poll_interval_ms", 250)
     min_cpm = cfg["entropy"].get("min_cpm", 5)
+
+    # Verify hardware fingerprint before connecting
+    logger.info("Verifying Geiger counter hardware fingerprint...")
+    if not verify_device_fingerprint(port, logger):
+        logger.error("🚨 Hardware verification failed — daemon refusing to start")
+        return
 
     logger.info(f"Connecting to Geiger counter on {port} at {baud} baud...")
 

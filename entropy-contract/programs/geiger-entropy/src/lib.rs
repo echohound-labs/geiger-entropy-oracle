@@ -1,7 +1,7 @@
 //! Geiger Entropy Oracle — X1 Anchor Program
 use anchor_lang::prelude::*;
 
-declare_id!("BxUNg2yo5371BQMZPkfcxdCptFRDHkhvEXNM1QNPBRYU");
+declare_id!("2dQf9uaCzXewrDNLttmtzQmc3SmqfAHz3qahKQjtGQyY");
 
 pub const ORACLE_STATE_SEED: &[u8] = b"oracle_state";
 pub const ENTROPY_NODE_SEED: &[u8] = b"entropy_node";

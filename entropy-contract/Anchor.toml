@@ -3,16 +3,22 @@ seeds = true
 skip-lint = false
 
 [programs.localnet]
-geiger_entropy = "BxUNg2yo5371BQMZPkfcxdCptFRDHkhvEXNM1QNPBRYU"
+geiger_entropy = "2dQf9uaCzXewrDNLttmtzQmc3SmqfAHz3qahKQjtGQyY"
 
 [programs.devnet]
+geiger_entropy = "2dQf9uaCzXewrDNLttmtzQmc3SmqfAHz3qahKQjtGQyY"
+
+[programs.testnet]
+geiger_entropy = "2dQf9uaCzXewrDNLttmtzQmc3SmqfAHz3qahKQjtGQyY"
+
+[programs.mainnet]
 geiger_entropy = "BxUNg2yo5371BQMZPkfcxdCptFRDHkhvEXNM1QNPBRYU"
 
 [registry]
 url = "https://api.apr.dev"
 
 [provider]
-cluster = "https://rpc-testnet.x1.xyz"
+cluster = "https://rpc.testnet.x1.xyz"
 wallet = "~/.config/solana/id.json"
 
 [scripts]
