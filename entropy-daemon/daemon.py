@@ -430,6 +430,27 @@ def onchain_submitter(cfg: dict, entropy_queue: queue.Queue, logger: logging.Log
                     sequence += 1
                 else:
                     logger.warning(f"Reveal failed: {reveal_result.stderr.strip()}")
+                    # Retry reveal up to 3 times before giving up
+                    revealed = False
+                    for retry in range(3):
+                        logger.info(f"Retrying reveal | attempt {retry+1}/3")
+                        time.sleep(2)
+                        retry_result = subprocess.run(
+                            ["node", str(reveal_script),
+                             vdf_out_32, nonce, sig_hex, str(cpm), str(timestamp)],
+                            capture_output=True, text=True, timeout=60
+                        )
+                        if retry_result.returncode == 0:
+                            logger.info(f"✓ Reveal retry succeeded | seq={sequence}")
+                            sequence += 1
+                            revealed = True
+                            break
+                        else:
+                            logger.warning(f"Reveal retry {retry+1} failed: {retry_result.stderr.strip()[:100]}")
+                    if not revealed:
+                        logger.error(f"Reveal failed after 3 retries — running recovery")
+                        subprocess.run(["node", str(recover_script)], capture_output=True, text=True, timeout=30)
+                        sequence += 1
 
             else:
                 result = subprocess.run(
