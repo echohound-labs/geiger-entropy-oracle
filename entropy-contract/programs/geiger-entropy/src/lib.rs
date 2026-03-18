@@ -24,7 +24,6 @@ pub mod geiger_entropy {
         state.total_nodes = 0;
         state.total_requests = 0;
         state.total_fulfillments = 0;
-        state.next_sequence = 0;
         state.paused = false;
         state.bump = ctx.bumps.oracle_state;
 
@@ -189,9 +188,6 @@ pub mod geiger_entropy {
         require!(!ctx.accounts.oracle_state.paused, GeigerError::OraclePaused);
         require!(commitment_hash != [0u8; 32], GeigerError::InvalidCommitment);
 
-        let oracle = &mut ctx.accounts.oracle_state;
-        require!(sequence == oracle.next_sequence, GeigerError::InvalidSequence);
-
         let pc = &mut ctx.accounts.pending_commitment;
         require!(
             pc.revealed || pc.committed_slot == 0,
@@ -259,9 +255,6 @@ pub mod geiger_entropy {
         let node = &mut ctx.accounts.entropy_node;
         node.submissions = node.submissions.saturating_add(1);
         node.last_submission = clock.unix_timestamp;
-
-        let oracle = &mut ctx.accounts.oracle_state;
-        oracle.next_sequence = oracle.next_sequence.saturating_add(1);
 
         pc.revealed = true;
 
@@ -448,7 +441,6 @@ pub struct OracleState {
     pub total_nodes: u64,
     pub total_requests: u64,
     pub total_fulfillments: u64,
-    pub next_sequence: u64,
     pub paused: bool,
     pub bump: u8,
 }

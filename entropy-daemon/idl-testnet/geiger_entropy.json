@@ -8,6 +8,100 @@
   },
   "instructions": [
     {
+      "name": "commit_entropy",
+      "docs": [
+        "Step 1: Commit entropy hash on-chain (blind)"
+      ],
+      "discriminator": [
+        91,
+        173,
+        89,
+        22,
+        226,
+        128,
+        74,
+        62
+      ],
+      "accounts": [
+        {
+          "name": "oracle_state",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  111,
+                  114,
+                  97,
+                  99,
+                  108,
+                  101,
+                  95,
+                  115,
+                  116,
+                  97,
+                  116,
+                  101
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "pending_commitment",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  109,
+                  109,
+                  105,
+                  116,
+                  109,
+                  101,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "operator"
+              }
+            ]
+          }
+        },
+        {
+          "name": "operator",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "commitment_hash",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
+        },
+        {
+          "name": "sequence",
+          "type": "u64"
+        }
+      ]
+    },
+    {
       "name": "fulfill_randomness",
       "discriminator": [
         235,
@@ -368,6 +462,238 @@
       ]
     },
     {
+      "name": "reveal_entropy",
+      "docs": [
+        "Step 2: Reveal entropy — must match commitment"
+      ],
+      "discriminator": [
+        112,
+        157,
+        174,
+        123,
+        233,
+        83,
+        16,
+        238
+      ],
+      "accounts": [
+        {
+          "name": "oracle_state",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  111,
+                  114,
+                  97,
+                  99,
+                  108,
+                  101,
+                  95,
+                  115,
+                  116,
+                  97,
+                  116,
+                  101
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "entropy_pool",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  101,
+                  110,
+                  116,
+                  114,
+                  111,
+                  112,
+                  121,
+                  95,
+                  112,
+                  111,
+                  111,
+                  108
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "pending_commitment",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  109,
+                  109,
+                  105,
+                  116,
+                  109,
+                  101,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "operator"
+              }
+            ]
+          }
+        },
+        {
+          "name": "entropy_node",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  101,
+                  110,
+                  116,
+                  114,
+                  111,
+                  112,
+                  121,
+                  95,
+                  110,
+                  111,
+                  100,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "operator"
+              }
+            ]
+          }
+        },
+        {
+          "name": "operator",
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "entropy_node"
+          ]
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "vdf_output",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
+        },
+        {
+          "name": "operator_nonce",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
+        },
+        {
+          "name": "cpm",
+          "type": "u32"
+        },
+        {
+          "name": "timestamp",
+          "type": "i64"
+        },
+        {
+          "name": "_signature",
+          "type": {
+            "array": [
+              "u8",
+              64
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "slash_missed_reveal",
+      "docs": [
+        "Slash operator who committed but failed to reveal"
+      ],
+      "discriminator": [
+        147,
+        44,
+        161,
+        189,
+        92,
+        230,
+        201,
+        235
+      ],
+      "accounts": [
+        {
+          "name": "pending_commitment",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  109,
+                  109,
+                  105,
+                  116,
+                  109,
+                  101,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "operator"
+              }
+            ]
+          }
+        },
+        {
+          "name": "operator",
+          "writable": true
+        },
+        {
+          "name": "reporter",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": []
+    },
+    {
       "name": "submit_entropy",
       "discriminator": [
         68,
@@ -543,6 +869,19 @@
       ]
     },
     {
+      "name": "PendingCommitment",
+      "discriminator": [
+        9,
+        68,
+        181,
+        144,
+        209,
+        77,
+        79,
+        47
+      ]
+    },
+    {
       "name": "RandomnessRequest",
       "discriminator": [
         244,
@@ -557,6 +896,19 @@
     }
   ],
   "events": [
+    {
+      "name": "CommitEvent",
+      "discriminator": [
+        252,
+        78,
+        246,
+        83,
+        244,
+        83,
+        218,
+        56
+      ]
+    },
     {
       "name": "EntropySubmitted",
       "discriminator": [
@@ -608,6 +960,32 @@
         90,
         149
       ]
+    },
+    {
+      "name": "RevealEvent",
+      "discriminator": [
+        51,
+        6,
+        123,
+        75,
+        48,
+        187,
+        64,
+        1
+      ]
+    },
+    {
+      "name": "SlashEvent",
+      "discriminator": [
+        126,
+        150,
+        240,
+        12,
+        183,
+        103,
+        116,
+        71
+      ]
     }
   ],
   "errors": [
@@ -645,9 +1023,78 @@
       "code": 6006,
       "name": "NameTooLong",
       "msg": "Node name too long (max 64 chars)"
+    },
+    {
+      "code": 6007,
+      "name": "InvalidCommitment",
+      "msg": "Invalid commitment hash"
+    },
+    {
+      "code": 6008,
+      "name": "InvalidSequence",
+      "msg": "Sequence number invalid"
+    },
+    {
+      "code": 6009,
+      "name": "UnrevealedCommitmentPending",
+      "msg": "Previous commitment not yet revealed"
+    },
+    {
+      "code": 6010,
+      "name": "CommitmentMismatch",
+      "msg": "Commitment hash mismatch"
+    },
+    {
+      "code": 6011,
+      "name": "RevealTooEarly",
+      "msg": "Reveal too early"
+    },
+    {
+      "code": 6012,
+      "name": "RevealDeadlineMissed",
+      "msg": "Reveal deadline missed"
+    },
+    {
+      "code": 6013,
+      "name": "RevealDeadlineNotReached",
+      "msg": "Reveal deadline not yet reached"
+    },
+    {
+      "code": 6014,
+      "name": "AlreadyRevealed",
+      "msg": "Already revealed"
     }
   ],
   "types": [
+    {
+      "name": "CommitEvent",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "operator",
+            "type": "pubkey"
+          },
+          {
+            "name": "commitment_hash",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "slot",
+            "type": "u64"
+          },
+          {
+            "name": "sequence",
+            "type": "u64"
+          }
+        ]
+      }
+    },
     {
       "name": "EntropyNode",
       "type": {
@@ -801,7 +1248,48 @@
             "type": "u64"
           },
           {
+            "name": "next_sequence",
+            "type": "u64"
+          },
+          {
             "name": "paused",
+            "type": "bool"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "PendingCommitment",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "operator",
+            "type": "pubkey"
+          },
+          {
+            "name": "commitment_hash",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "committed_slot",
+            "type": "u64"
+          },
+          {
+            "name": "sequence",
+            "type": "u64"
+          },
+          {
+            "name": "revealed",
             "type": "bool"
           },
           {
@@ -924,6 +1412,75 @@
           },
           {
             "name": "Cancelled"
+          }
+        ]
+      }
+    },
+    {
+      "name": "RevealEvent",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "operator",
+            "type": "pubkey"
+          },
+          {
+            "name": "sequence",
+            "type": "u64"
+          },
+          {
+            "name": "commit_slot",
+            "type": "u64"
+          },
+          {
+            "name": "reveal_slot",
+            "type": "u64"
+          },
+          {
+            "name": "vdf_output",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "cpm",
+            "type": "u32"
+          },
+          {
+            "name": "timestamp",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "SlashEvent",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "operator",
+            "type": "pubkey"
+          },
+          {
+            "name": "reporter",
+            "type": "pubkey"
+          },
+          {
+            "name": "sequence",
+            "type": "u64"
+          },
+          {
+            "name": "slash_amount",
+            "type": "u64"
+          },
+          {
+            "name": "slot",
+            "type": "u64"
           }
         ]
       }
