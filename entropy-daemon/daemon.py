@@ -349,9 +349,20 @@ def serial_collector(cfg: dict, state: EntropyState, private_key: Ed25519Private
 
 def onchain_submitter(cfg: dict, entropy_queue: queue.Queue, logger: logging.Logger):
     import subprocess
+    import secrets
 
     submit_script = Path(__file__).parent / os.environ.get("SUBMIT_SCRIPT", "submit_entropy.js")
-    logger.info("On-chain submitter ready — waiting for entropy events...")
+    commit_script = Path(__file__).parent / "commit_entropy.js"
+    reveal_script = Path(__file__).parent / "reveal_entropy.js"
+
+    use_commit_reveal = commit_script.exists() and reveal_script.exists()
+
+    if use_commit_reveal:
+        logger.info("On-chain submitter ready -- commit-reveal mode")
+    else:
+        logger.info("On-chain submitter ready -- direct submit mode")
+
+    sequence = 0
 
     while True:
         try:
@@ -360,21 +371,51 @@ def onchain_submitter(cfg: dict, entropy_queue: queue.Queue, logger: logging.Log
             sig_hex = event["signature"].hex()
             cpm = event["cpm"]
             timestamp = event["timestamp"]
+            vdf_output_hex = event.get("vdf_output", "00" * 32)
+            vdf_iters = event.get("vdf_iters", 10000)
+            vdf_out_32 = vdf_output_hex[:64]
 
-            result = subprocess.run(
-                ["node", str(submit_script),
-                 seed_hex, sig_hex, str(cpm), str(timestamp)],
-                capture_output=True, text=True, timeout=30
-            )
+            if use_commit_reveal:
+                nonce = secrets.token_hex(32)
 
-            if result.returncode == 0:
-                logger.info(f"✓ On-chain submission OK | CPM={cpm} | VDF={event['vdf_iters']}iters")
-                logger.debug(result.stdout.strip())
+                commit_result = subprocess.run(
+                    ["node", str(commit_script),
+                     vdf_out_32, nonce, str(sequence)],
+                    capture_output=True, text=True, timeout=30
+                )
+
+                if commit_result.returncode != 0:
+                    logger.warning(f"Commit failed: {commit_result.stderr.strip()}")
+                    continue
+
+                logger.info(f"Committed | seq={sequence} CPM={cpm}")
+
+                reveal_result = subprocess.run(
+                    ["node", str(reveal_script),
+                     vdf_out_32, nonce, sig_hex, str(cpm), str(timestamp)],
+                    capture_output=True, text=True, timeout=60
+                )
+
+                if reveal_result.returncode == 0:
+                    logger.info(f"Revealed | seq={sequence} CPM={cpm} VDF={vdf_iters}iters")
+                    sequence += 1
+                else:
+                    logger.warning(f"Reveal failed: {reveal_result.stderr.strip()}")
+
             else:
-                logger.warning(f"On-chain submission failed: {result.stderr.strip()}")
+                result = subprocess.run(
+                    ["node", str(submit_script),
+                     seed_hex, sig_hex, str(cpm), str(timestamp)],
+                    capture_output=True, text=True, timeout=30
+                )
+                if result.returncode == 0:
+                    logger.info(f"On-chain submission OK | CPM={cpm} | VDF={vdf_iters}iters")
+                    logger.debug(result.stdout.strip())
+                else:
+                    logger.warning(f"On-chain submission failed: {result.stderr.strip()}")
 
         except queue.Empty:
-            logger.debug("No entropy events in last 60s — is Geiger counter running?")
+            logger.debug("No entropy events in last 60s -- is Geiger counter running?")
         except Exception as e:
             logger.error(f"Submitter error: {e}")
             time.sleep(5)
