@@ -239,13 +239,12 @@ def serial_collector(cfg: dict, state: EntropyState, private_key: Ed25519Private
                     entropy_input = f"{delta_ns}-{now_ns}-{cpm}-{cps}".encode()
                     raw_seed = hashlib.sha256(entropy_input).digest()
 
-                    # Step 2: Apply VDF for manipulation resistance
-                    vdf_start = time.time()
-                    vdf_output, vdf_proof, vdf_iters, discriminant = compute_vdf(raw_seed, cpm)
-                    vdf_time = time.time() - vdf_start
-
-                    # Step 3: Final seed = SHA256(VDF output)
-                    final_seed = hashlib.sha256(vdf_output).digest()
+                    # No VDF — direct seed for maximum speed
+                    final_seed = raw_seed
+                    vdf_output = b"\x00" * 100
+                    vdf_proof = b"\x00" * 100
+                    vdf_iters = 0
+                    vdf_time = 0.0
                     timestamp = int(now)
                     signature = sign_entropy(private_key, final_seed, timestamp)
 
