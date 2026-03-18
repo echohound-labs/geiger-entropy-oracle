@@ -48,7 +48,7 @@ async function main() {
 
   // Wait for slot delay
   console.log("Waiting for commit-reveal delay...");
-  await new Promise(resolve => setTimeout(resolve, 5000));
+  await new Promise(resolve => setTimeout(resolve, 2000));
 
   const tx = await program.methods
     .revealEntropy(

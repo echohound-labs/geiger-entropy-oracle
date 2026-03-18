@@ -590,7 +590,7 @@ pub enum GeigerError {
 // ---------------------------------------------------------------------------
 
 pub const COMMITMENT_SEED: &[u8] = b"commitment";
-pub const COMMIT_REVEAL_DELAY_SLOTS: u64 = 8;
+pub const COMMIT_REVEAL_DELAY_SLOTS: u64 = 3;
 pub const REVEAL_DEADLINE_SLOTS: u64 = 128;
 pub const SLASH_AMOUNT_LAMPORTS: u64 = 100_000_000;
 
