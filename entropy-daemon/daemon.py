@@ -356,13 +356,42 @@ def onchain_submitter(cfg: dict, entropy_queue: queue.Queue, logger: logging.Log
     reveal_script = Path(__file__).parent / "testnet" / "reveal_entropy.js"
 
     use_commit_reveal = commit_script.exists() and reveal_script.exists()
+    recover_script = Path(__file__).parent / "testnet" / "recover_commitment.js"
 
     if use_commit_reveal:
         logger.info("On-chain submitter ready -- commit-reveal mode")
+        # Startup recovery — check for stuck commitments
+        if recover_script.exists():
+            logger.info("Checking for stuck commitments...")
+            try:
+                recovery = subprocess.run(
+                    ["node", str(recover_script)],
+                    capture_output=True, text=True, timeout=30
+                )
+                # Get last line of output (JSON status)
+                output_lines = [l for l in recovery.stdout.strip().split("\n") if l.startswith("{")]
+                if output_lines:
+                    import json
+                    status = json.loads(output_lines[-1])
+                    if status["status"] == "clean":
+                        sequence = int(status.get("sequence", 0))
+                        logger.info(f"✓ Clean state — starting at sequence {sequence}")
+                    elif status["status"] == "slashed":
+                        sequence = int(status.get("sequence", 0)) + 1
+                        logger.info(f"✓ Cleared stuck commitment — starting at sequence {sequence}")
+                    elif status["status"] == "pending":
+                        sequence = int(status.get("sequence", 0))
+                        logger.info(f"✓ Resuming from sequence {sequence}")
+                else:
+                    sequence = 0
+                    logger.info("✓ Fresh start — sequence 0")
+            except Exception as e:
+                logger.warning(f"Recovery check failed: {e}")
+                sequence = 0
     else:
         logger.info("On-chain submitter ready -- direct submit mode")
 
-    sequence = 0
+    sequence = sequence if use_commit_reveal else 0
 
     while True:
         try:
