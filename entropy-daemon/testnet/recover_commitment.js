@@ -10,7 +10,7 @@ async function main() {
   );
   const connection = new Connection("https://rpc.testnet.x1.xyz", "confirmed");
   const idl = JSON.parse(fs.readFileSync(
-    path.join(__dirname, "./idl-testnet/geiger_entropy.json")
+    path.join(__dirname, "./idl/testnet/geiger_entropy.json")
   ));
   const programId = new PublicKey("2dQf9uaCzXewrDNLttmtzQmc3SmqfAHz3qahKQjtGQyY");
   const provider = new anchor.AnchorProvider(
