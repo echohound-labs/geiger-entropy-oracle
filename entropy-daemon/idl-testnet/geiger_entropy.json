@@ -1,5 +1,5 @@
 {
-  "address": "BxUNg2yo5371BQMZPkfcxdCptFRDHkhvEXNM1QNPBRYU",
+  "address": "2dQf9uaCzXewrDNLttmtzQmc3SmqfAHz3qahKQjtGQyY",
   "metadata": {
     "name": "geiger_entropy",
     "version": "0.1.0",
@@ -1245,10 +1245,6 @@
           },
           {
             "name": "total_fulfillments",
-            "type": "u64"
-          },
-          {
-            "name": "next_sequence",
             "type": "u64"
           },
           {
