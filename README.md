@@ -167,6 +167,10 @@ Year 4: 100,000 RADS (10%)
 
 ## Run a Node
 
+**Device Fingerprinting:**
+On first run the daemon automatically registers your GMC-500 hardware fingerprint. If someone swaps your device the daemon refuses to start. To reset: `rm entropy-daemon/.geiger_device_fingerprint`
+
+
 📖 **[Full Setup Guide](docs/setup-guide.md)** — Windows WSL2, Raspberry Pi, troubleshooting
 
 

@@ -223,3 +223,30 @@ systemctl --user start geiger-entropy
 ---
 
 *Echo Hound Labs — Building X1 Infrastructure* 🦴☢️
+
+## Device Fingerprinting
+
+On first run the daemon reads and stores your GMC-500 hardware fingerprint:
+- Model: GMC-500+Re 2.5
+- Internal serial number
+- USB VID:PID
+```
+✓ Device fingerprint registered: 83ff336d752b6b12...
+```
+
+Every subsequent run verifies the fingerprint:
+```
+✓ Device fingerprint verified: 83ff336d752b6b12...
+```
+
+If someone swaps your hardware:
+```
+🚨 DEVICE FINGERPRINT MISMATCH!
+Hardware verification failed — daemon refusing to start
+```
+
+To reset fingerprint (if you replace your device):
+```bash
+rm entropy-daemon/.geiger_device_fingerprint
+```
+Daemon will re-register on next start.
