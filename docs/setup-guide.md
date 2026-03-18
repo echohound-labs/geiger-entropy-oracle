@@ -29,21 +29,32 @@ sudo apt-get install -y python3 python3-pip
 python3 --version  # should show 3.9+
 ```
 
-### 3. Install Rust
+### 3. Install chiavdf build dependencies
+chiavdf (VDF library) requires these system packages:
+```bash
+sudo apt-get install -y \
+    build-essential \
+    cmake \
+    libgmp-dev \
+    python3-dev \
+    pkg-config
+```
+
+### 4. Install Rust
 ```bash
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 source $HOME/.cargo/env
 rustc --version
 ```
 
-### 4. Install Solana CLI
+### 5. Install Solana CLI
 ```bash
 sh -c "$(curl -sSfL https://release.solana.com/stable/install)"
 export PATH="$HOME/.local/share/solana/install/active_release/bin:$PATH"
 solana --version
 ```
 
-### 5. Install Anchor CLI
+### 6. Install Anchor CLI (developers only — skip if just running a node)
 ```bash
 cargo install --git https://github.com/coral-xyz/anchor avm --locked
 avm install 0.32.1
@@ -51,7 +62,7 @@ avm use 0.32.1
 anchor --version
 ```
 
-### 6. Install Python dependencies
+### 7. Install Python dependencies
 ```bash
 cd geiger-entropy-oracle/entropy-daemon
 pip3 install -r requirements.txt --break-system-packages
@@ -115,8 +126,10 @@ solana address -k ~/.config/solana/id.json
 
 ### Fund your wallet
 You need XNT for transaction fees:
-- Get XNT from X1 faucet or exchange
+- X1 Faucet: https://faucet.x1.xyz
 - Minimum ~1 XNT recommended
+- Each submission costs ~0.000005 XNT
+- 1 XNT = ~200,000 submissions
 
 ### Check balance
 ```bash
@@ -210,6 +223,13 @@ program_id = "BxUNg2yo5371BQMZPkfcxdCptFRDHkhvEXNM1QNPBRYU"
 oracle_state = "BygMTZ1oLBD9tDmssnt9LkNT7BEd2PCJBCzurwtMuTqm"
 entropy_pool = "GDECYXCXietabJs9Y1baKzD3t4VFBw4eZWPnvYenyi77"
 entropy_node = "YOUR_NODE_PDA_HERE"
+```
+
+---
+
+## Create logs directory
+```bash
+mkdir -p ~/geiger-entropy-oracle/entropy-daemon/logs
 ```
 
 ---
