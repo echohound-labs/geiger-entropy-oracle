@@ -1,66 +1,159 @@
-# 🔧 Setup Guide
-## Running Geiger Entropy Oracle on Windows (WSL2)
+# 🔧 Setup Guide — Geiger Entropy Oracle Node
+
+Complete guide to running a Geiger Entropy Oracle node on X1 Mainnet.
 
 ---
 
-## Prerequisites
+## Hardware Required
 
-- Windows 10/11 with WSL2 (Ubuntu)
-- GMC-500+ Geiger counter
-- Node.js 18+
-- Python 3.9+
-- Solana CLI
-- Anchor CLI 0.32.1
+| Item | Model | Cost | Link |
+|------|-------|------|------|
+| Geiger Counter | GMC-500+ | ~$100 | GQ Electronics |
+| Computer | Any Linux/WSL2/RPi | varies | — |
+| Radioactive source | Natural fossils or smoke detector | $0-5 | — |
 
 ---
 
-## Step 1 — Install usbipd (Windows)
+## Software Prerequisites
 
-Open **Windows PowerShell as Administrator** and run:
+### 1. Install Node.js 20+
+```bash
+curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+sudo apt-get install -y nodejs
+node --version  # should show v20+
+```
+
+### 2. Install Python 3.9+
+```bash
+sudo apt-get install -y python3 python3-pip
+python3 --version  # should show 3.9+
+```
+
+### 3. Install Rust
+```bash
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+source $HOME/.cargo/env
+rustc --version
+```
+
+### 4. Install Solana CLI
+```bash
+sh -c "$(curl -sSfL https://release.solana.com/stable/install)"
+export PATH="$HOME/.local/share/solana/install/active_release/bin:$PATH"
+solana --version
+```
+
+### 5. Install Anchor CLI
+```bash
+cargo install --git https://github.com/coral-xyz/anchor avm --locked
+avm install 0.32.1
+avm use 0.32.1
+anchor --version
+```
+
+### 6. Install Python dependencies
+```bash
+cd geiger-entropy-oracle/entropy-daemon
+pip3 install -r requirements.txt --break-system-packages
+```
+
+---
+
+## Windows WSL2 Setup
+
+### Install usbipd (Windows PowerShell as Administrator)
 ```powershell
 winget install usbipd
 ```
 
----
-
-## Step 2 — Attach Geiger Counter to WSL2
-
-Every time you plug in your GMC-500, open **Windows PowerShell as Administrator**:
+### Attach Geiger Counter to WSL2
+Run in **Windows PowerShell as Administrator** every time you plug in:
 ```powershell
-# List connected USB devices
+# List USB devices
 usbipd list
+# Find: USB-SERIAL CH340 (COM4) — note the busid (e.g. 2-2)
 
-# You should see something like:
-# 2-2    1a86:7523  USB-SERIAL CH340 (COM4)    Shared
-
-# Attach to WSL (replace 2-2 with your busid)
+# Attach to WSL
 usbipd attach --busid 2-2 --wsl
 ```
 
-Then verify in WSL:
+Verify in WSL:
 ```bash
 dmesg | grep tty
 # Should show: ch341-uart converter now attached to ttyUSB0
+ls /dev/ttyUSB0
 ```
 
-**Note:** You need to do this every time you:
-- Restart your PC
-- Unplug and replug the Geiger counter
-- Restart WSL
+**Note:** Repeat usbipd attach after every reboot or replug.
 
 ---
 
-## Step 3 — Clone and Install
+## Linux / Raspberry Pi Setup
+
+No usbipd needed — just plug in the GMC-500:
+```bash
+ls /dev/ttyUSB*
+# Should show /dev/ttyUSB0
+
+# Add user to dialout group if needed
+sudo usermod -a -G dialout $USER
+# Log out and back in
+```
+
+---
+
+## Wallet Setup
+
+### Create a new Solana wallet
+```bash
+solana-keygen new --outfile ~/.config/solana/id.json
+# Save your seed phrase securely!
+
+# View your address
+solana address -k ~/.config/solana/id.json
+```
+
+### Fund your wallet
+You need XNT for transaction fees:
+- Get XNT from X1 faucet or exchange
+- Minimum ~1 XNT recommended
+
+### Check balance
+```bash
+solana balance --url https://rpc.mainnet.x1.xyz
+```
+
+---
+
+## Installation
+
+### Clone the repository
 ```bash
 git clone https://github.com/echohound-labs/geiger-entropy-oracle
-cd geiger-entropy-oracle/entropy-daemon
-pip3 install -r requirements.txt
+cd geiger-entropy-oracle
+```
+
+### Install Node dependencies
+```bash
+cd entropy-contract
+npm install
+cd ..
+```
+
+### Install Python dependencies
+```bash
+cd entropy-daemon
+pip3 install -r requirements.txt --break-system-packages
+cd ..
 ```
 
 ---
 
-## Step 4 — Configure
+## Configuration
+
+### Copy and edit config
 ```bash
+cd entropy-daemon
 cp config.toml config-mainnet.toml
 ```
 
@@ -72,7 +165,7 @@ log_level = "INFO"
 
 [node]
 keypair_path = "~/.config/solana/id.json"
-node_name = "Your Node Name"
+node_name = "Your Node Name Here"
 
 [entropy]
 rolling_pool_size = 10
@@ -93,29 +186,76 @@ entropy_node = "YOUR_NODE_PDA_HERE"
 
 ---
 
-## Step 5 — Register Your Node
+## Register Your Node
 ```bash
-cd ~/geiger-entropy-oracle/entropy-contract
-node register_node.js
+cd entropy-contract
+node register_node.js "My Node Name"
 ```
 
-Save your Node PDA address and add it to `config-mainnet.toml`.
+Expected output:
+```
+Network: MAINNET
+RPC: https://rpc.mainnet.x1.xyz
+Operator: YourWalletAddress...
+Balance: 10.5 XNT
+Node PDA: YourNodePDA...
+Node registered!
+  Transaction: txSignature...
+  Node PDA: YourNodePDA...
+Add to config-mainnet.toml:
+  entropy_node = "YourNodePDA..."
+```
+
+Copy the Node PDA into your `config-mainnet.toml`.
 
 ---
 
-## Step 6 — Start the Oracle
+## Device Fingerprinting
+
+On first run the daemon automatically registers your GMC-500 hardware fingerprint:
+```
+✓ Device fingerprint registered: 83ff336d752b6b12...
+  Model: GMC-500 | USB: /dev/ttyUSB0
+```
+
+Every subsequent run verifies it:
+```
+✓ Device fingerprint verified: 83ff336d752b6b12...
+```
+
+If someone swaps your hardware:
+```
+🚨 DEVICE FINGERPRINT MISMATCH!
+Hardware verification failed — daemon refusing to start
+```
+
+To reset (if you replace your Geiger counter):
 ```bash
-cd ~/geiger-entropy-oracle/entropy-daemon
+rm entropy-daemon/.geiger_device_fingerprint
+```
+
+---
+
+## Start the Oracle
+```bash
+cd entropy-daemon
 chmod +x start.sh
 ./start.sh
 ```
 
-**Verify it's running:**
+Or manually:
+```bash
+CONFIG_PATH=./config-mainnet.toml \
+SUBMIT_SCRIPT=./submit_entropy_mainnet.js \
+python3 daemon.py > logs/mainnet-daemon.log 2>&1 &
+```
+
+### Verify it's running
 ```bash
 curl http://localhost:8746/health
 ```
 
-Expected output:
+Expected:
 ```json
 {
   "status": "ok",
@@ -126,77 +266,21 @@ Expected output:
 }
 ```
 
----
-
-## Step 7 — Monitor
-
-**Watch live logs:**
+### Watch live logs
 ```bash
 tail -f logs/mainnet-daemon.log
 ```
 
-**Check submissions:**
-```bash
-curl http://localhost:8746/entropy
+Expected output:
 ```
-
-**Check balance:**
-```bash
-solana balance --url https://rpc.mainnet.x1.xyz YOUR_WALLET
+✓ Device fingerprint verified: 83ff336d...
+☢️ DECAY EVENT | Δt=3.2s | CPM=20 | seed=abc123... | VDF=50000iters/0.162s
+✓ On-chain submission OK | CPM=20 | VDF=50000iters
 ```
 
 ---
 
-## Running on Raspberry Pi (Linux)
-
-No usbipd needed! Just plug in the GMC-500 and run:
-```bash
-ls /dev/ttyUSB*
-# Should show /dev/ttyUSB0
-```
-
-Then follow steps 3-7 above.
-
----
-
-## Troubleshooting
-
-**GMC-500 not detected:**
-```bash
-# Check if USB is attached in WSL
-dmesg | grep tty
-
-# If not, reattach in PowerShell
-usbipd attach --busid 2-2 --wsl
-```
-
-**Port already in use:**
-```bash
-pkill -f daemon.py
-fuser -k 8746/tcp
-./start.sh
-```
-
-**Low balance:**
-```bash
-# Check mainnet balance
-solana balance --url https://rpc.mainnet.x1.xyz YOUR_WALLET
-
-# Top up if below 5 XNT
-```
-
-**Submissions failing:**
-```bash
-tail -f logs/mainnet-daemon.log
-# Look for "On-chain submission failed"
-# Check your XNT balance
-```
-
----
-
-## systemd Service (Auto-start on boot)
-
-Create service file:
+## Auto-start on Boot (systemd)
 ```bash
 cat > ~/.config/systemd/user/geiger-entropy.service << 'SEOF'
 [Unit]
@@ -216,37 +300,91 @@ RestartSec=10
 WantedBy=default.target
 SEOF
 
+# Replace YOUR_USERNAME
+sed -i "s/YOUR_USERNAME/$USER/g" ~/.config/systemd/user/geiger-entropy.service
+
 systemctl --user enable geiger-entropy
 systemctl --user start geiger-entropy
+systemctl --user status geiger-entropy
 ```
 
 ---
 
-*Echo Hound Labs — Building X1 Infrastructure* 🦴☢️
-
-## Device Fingerprinting
-
-On first run the daemon reads and stores your GMC-500 hardware fingerprint:
-- Model: GMC-500+Re 2.5
-- Internal serial number
-- USB VID:PID
-```
-✓ Device fingerprint registered: 83ff336d752b6b12...
-```
-
-Every subsequent run verifies the fingerprint:
-```
-✓ Device fingerprint verified: 83ff336d752b6b12...
-```
-
-If someone swaps your hardware:
-```
-🚨 DEVICE FINGERPRINT MISMATCH!
-Hardware verification failed — daemon refusing to start
-```
-
-To reset fingerprint (if you replace your device):
+## Monitor Your Node
 ```bash
-rm entropy-daemon/.geiger_device_fingerprint
+# Health check
+curl http://localhost:8746/health
+
+# Latest entropy
+curl http://localhost:8746/entropy
+
+# Check balance
+solana balance --url https://rpc.mainnet.x1.xyz
+
+# View on explorer
+# https://explorer.mainnet.x1.xyz/address/YOUR_WALLET
 ```
-Daemon will re-register on next start.
+
+---
+
+## ENTROPY Token
+
+Every decay event submission earns ENTROPY tokens (coming Q2 2026):
+```
+Max Supply:  1,000,000 ENTROPY
+Emission:    4 years equal distribution
+Year 1-4:    250,000 ENTROPY each (25%)
+Mint:        Oracle program only
+```
+
+The more decay events your node captures, the more ENTROPY you earn.
+Higher CPM = more events = more ENTROPY.
+
+---
+
+## Troubleshooting
+
+**GMC-500 not detected:**
+```bash
+dmesg | grep tty
+# If empty, reattach USB (WSL2):
+# usbipd attach --busid 2-2 --wsl
+```
+
+**Port already in use:**
+```bash
+pkill -f daemon.py
+fuser -k 8746/tcp
+./start.sh
+```
+
+**Insufficient balance:**
+```bash
+solana balance --url https://rpc.mainnet.x1.xyz
+# Top up if below 1 XNT
+```
+
+**Submissions failing:**
+```bash
+tail -f logs/mainnet-daemon.log
+# Look for "On-chain submission failed"
+```
+
+**Permission denied on /dev/ttyUSB0:**
+```bash
+sudo usermod -a -G dialout $USER
+# Log out and back in
+```
+
+---
+
+## Explorer Links
+
+- Mainnet: https://explorer.mainnet.x1.xyz
+- Program: https://explorer.mainnet.x1.xyz/address/BxUNg2yo5371BQMZPkfcxdCptFRDHkhvEXNM1QNPBRYU
+- Operator: https://explorer.mainnet.x1.xyz/address/HGFisVbULNKqogtPuGTfcHG9y6i5nboZabYwifkiiodo
+
+---
+
+*Echo Hound Labs (@EchoHoundX) ☢️🦴*
+*Building X1 Infrastructure from the ground up*
