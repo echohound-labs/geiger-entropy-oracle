@@ -53,9 +53,11 @@ Entropy is derived from the time between decay events (Δt), which follows a Poi
                            ▼
 ┌─────────────────────────────────────────────────────────────┐
 │              geiger_stream + daemon.py                       │
-│  • polls CPS every 250ms via GETCPS command                 │
+│                                                              │
+│  • verifies GMC-500 hardware fingerprint (device lock)      │
+│  • polls CPS every 250ms via <GETCPS>> command              │
 │  • detects rising edge decay events                         │
-│  • extracts Δt between events                               │
+│  • extracts Δt between events (Poisson process)             │
 │  • SHA256(Δt + timestamp + CPM + CPS) = raw seed            │
 │  • Wesolowski VDF(seed, dynamic_iters) = tamper-proof       │
 │  • Ed25519 signs final seed                                 │
