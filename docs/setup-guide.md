@@ -149,6 +149,34 @@ cd ..
 
 ---
 
+## Verify Geiger Counter
+
+Before configuring, verify your GMC-500 is working:
+```bash
+# Check device is detected
+ls /dev/ttyUSB0
+
+# Test serial connection
+python3 -c "
+import serial
+s = serial.Serial('/dev/ttyUSB0', 115200, timeout=5)
+s.write(b'<GETVER>>')
+print('Response:', s.read(14))
+s.close()
+print('GMC-500 OK!')
+"
+```
+
+Expected output:
+````
+Response: b'GMC-500Re 2.50'
+GMC-500 OK!
+`````
+
+If no response — check USB connection and usbipd attachment.
+
+---
+
 ## Configuration
 
 ### Copy and edit config
