@@ -1,5 +1,6 @@
 //! Geiger Entropy Oracle — X1 Anchor Program
 use anchor_lang::prelude::*;
+use sha2::{Sha256, Digest};
 
 declare_id!("2dQf9uaCzXewrDNLttmtzQmc3SmqfAHz3qahKQjtGQyY");
 
@@ -23,6 +24,7 @@ pub mod geiger_entropy {
         state.total_nodes = 0;
         state.total_requests = 0;
         state.total_fulfillments = 0;
+        state.next_sequence = 0;
         state.paused = false;
         state.bump = ctx.bumps.oracle_state;
 
@@ -177,6 +179,135 @@ pub mod geiger_entropy {
         msg!("Randomness fulfilled: {:?}", &result[..8]);
         Ok(())
     }
+
+    /// Step 1: Commit entropy hash on-chain (blind)
+    pub fn commit_entropy(
+        ctx: Context<CommitEntropy>,
+        commitment_hash: [u8; 32],
+        sequence: u64,
+    ) -> Result<()> {
+        require!(!ctx.accounts.oracle_state.paused, GeigerError::OraclePaused);
+        require!(commitment_hash != [0u8; 32], GeigerError::InvalidCommitment);
+
+        let oracle = &mut ctx.accounts.oracle_state;
+        require!(sequence == oracle.next_sequence, GeigerError::InvalidSequence);
+
+        let pc = &mut ctx.accounts.pending_commitment;
+        require!(
+            pc.revealed || pc.committed_slot == 0,
+            GeigerError::UnrevealedCommitmentPending
+        );
+
+        let clock = Clock::get()?;
+        pc.operator = ctx.accounts.operator.key();
+        pc.commitment_hash = commitment_hash;
+        pc.committed_slot = clock.slot;
+        pc.sequence = sequence;
+        pc.revealed = false;
+        pc.bump = ctx.bumps.pending_commitment;
+
+        emit!(CommitEvent {
+            operator: ctx.accounts.operator.key(),
+            commitment_hash,
+            slot: clock.slot,
+            sequence,
+        });
+
+        msg!("Entropy committed | seq={} slot={}", sequence, clock.slot);
+        Ok(())
+    }
+
+    /// Step 2: Reveal entropy — must match commitment
+    pub fn reveal_entropy(
+        ctx: Context<RevealEntropy>,
+        vdf_output: [u8; 32],
+        operator_nonce: [u8; 32],
+        cpm: u32,
+        timestamp: i64,
+        _signature: [u8; 64],
+    ) -> Result<()> {
+        let clock = Clock::get()?;
+        let pc = &mut ctx.accounts.pending_commitment;
+
+        require!(!pc.revealed, GeigerError::AlreadyRevealed);
+        require!(
+            clock.slot >= pc.committed_slot + COMMIT_REVEAL_DELAY_SLOTS,
+            GeigerError::RevealTooEarly
+        );
+        require!(
+            clock.slot <= pc.committed_slot + REVEAL_DEADLINE_SLOTS,
+            GeigerError::RevealDeadlineMissed
+        );
+        require!(cpm >= 5, GeigerError::CpmTooLow);
+
+        // Verify H(vdf_output || nonce) == stored commitment
+        let mut preimage = [0u8; 64];
+        preimage[..32].copy_from_slice(&vdf_output);
+        preimage[32..].copy_from_slice(&operator_nonce);
+        let mut hasher = Sha256::new();
+        hasher.update(&preimage);
+        let computed_hash: [u8; 32] = hasher.finalize().into();
+        require!(computed_hash == pc.commitment_hash, GeigerError::CommitmentMismatch);
+
+        // Store in entropy pool
+        let pool = &mut ctx.accounts.entropy_pool;
+        let idx = (pool.head as usize) % POOL_CAPACITY;
+        pool.seeds[idx] = vdf_output;
+        pool.head = pool.head.wrapping_add(1);
+        pool.total_submissions = pool.total_submissions.saturating_add(1);
+
+        let node = &mut ctx.accounts.entropy_node;
+        node.submissions = node.submissions.saturating_add(1);
+        node.last_submission = clock.unix_timestamp;
+
+        let oracle = &mut ctx.accounts.oracle_state;
+        oracle.next_sequence = oracle.next_sequence.saturating_add(1);
+
+        pc.revealed = true;
+
+        emit!(RevealEvent {
+            operator: ctx.accounts.operator.key(),
+            sequence: pc.sequence,
+            commit_slot: pc.committed_slot,
+            reveal_slot: clock.slot,
+            vdf_output,
+            cpm,
+            timestamp,
+        });
+
+        msg!("☢️ Entropy revealed | seq={} CPM={} verified✓", pc.sequence, cpm);
+        Ok(())
+    }
+
+    /// Slash operator who committed but failed to reveal
+    pub fn slash_missed_reveal(ctx: Context<SlashMissedReveal>) -> Result<()> {
+        let pc = &mut ctx.accounts.pending_commitment;
+        let clock = Clock::get()?;
+
+        require!(
+            clock.slot > pc.committed_slot + REVEAL_DEADLINE_SLOTS,
+            GeigerError::RevealDeadlineNotReached
+        );
+        require!(!pc.revealed, GeigerError::AlreadyRevealed);
+
+        **ctx.accounts.operator.try_borrow_mut_lamports()? -= SLASH_AMOUNT_LAMPORTS;
+        **ctx.accounts.reporter.try_borrow_mut_lamports()? += SLASH_AMOUNT_LAMPORTS;
+
+        pc.revealed = true;
+
+        emit!(SlashEvent {
+            operator: ctx.accounts.operator.key(),
+            reporter: ctx.accounts.reporter.key(),
+            sequence: pc.sequence,
+            slash_amount: SLASH_AMOUNT_LAMPORTS,
+            slot: clock.slot,
+        });
+
+        msg!("🚨 Operator slashed | seq={}", pc.sequence);
+        Ok(())
+    }
+
+
 }
 
 #[derive(Accounts)]
@@ -317,6 +448,7 @@ pub struct OracleState {
     pub total_nodes: u64,
     pub total_requests: u64,
     pub total_fulfillments: u64,
+    pub next_sequence: u64,
     pub paused: bool,
     pub bump: u8,
 }
@@ -397,6 +529,35 @@ pub struct RandomnessFulfilled {
     pub result: [u8; 32],
 }
 
+
+#[event]
+pub struct CommitEvent {
+    pub operator: Pubkey,
+    pub commitment_hash: [u8; 32],
+    pub slot: u64,
+    pub sequence: u64,
+}
+
+#[event]
+pub struct RevealEvent {
+    pub operator: Pubkey,
+    pub sequence: u64,
+    pub commit_slot: u64,
+    pub reveal_slot: u64,
+    pub vdf_output: [u8; 32],
+    pub cpm: u32,
+    pub timestamp: i64,
+}
+
+#[event]
+pub struct SlashEvent {
+    pub operator: Pubkey,
+    pub reporter: Pubkey,
+    pub sequence: u64,
+    pub slash_amount: u64,
+    pub slot: u64,
+}
+
 #[error_code]
 pub enum GeigerError {
     #[msg("Oracle is paused")]
@@ -413,6 +574,23 @@ pub enum GeigerError {
     RequestAlreadyFulfilled,
     #[msg("Node name too long (max 64 chars)")]
     NameTooLong,
+
+    #[msg("Invalid commitment hash")]
+    InvalidCommitment,
+    #[msg("Sequence number invalid")]
+    InvalidSequence,
+    #[msg("Previous commitment not yet revealed")]
+    UnrevealedCommitmentPending,
+    #[msg("Commitment hash mismatch")]
+    CommitmentMismatch,
+    #[msg("Reveal too early")]
+    RevealTooEarly,
+    #[msg("Reveal deadline missed")]
+    RevealDeadlineMissed,
+    #[msg("Reveal deadline not yet reached")]
+    RevealDeadlineNotReached,
+    #[msg("Already revealed")]
+    AlreadyRevealed,
 }
 
 // ---------------------------------------------------------------------------
