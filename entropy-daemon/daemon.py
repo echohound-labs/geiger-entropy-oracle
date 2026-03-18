@@ -352,8 +352,8 @@ def onchain_submitter(cfg: dict, entropy_queue: queue.Queue, logger: logging.Log
     import secrets
 
     submit_script = Path(__file__).parent / os.environ.get("SUBMIT_SCRIPT", "submit_entropy.js")
-    commit_script = Path(__file__).parent / "commit_entropy.js"
-    reveal_script = Path(__file__).parent / "reveal_entropy.js"
+    commit_script = Path(__file__).parent / "testnet" / "commit_entropy.js"
+    reveal_script = Path(__file__).parent / "testnet" / "reveal_entropy.js"
 
     use_commit_reveal = commit_script.exists() and reveal_script.exists()
 
