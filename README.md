@@ -15,7 +15,7 @@ Program ID:    BxUNg2yo5371BQMZPkfcxdCptFRDHkhvEXNM1QNPBRYU
 Oracle State:  BygMTZ1oLBD9tDmssnt9LkNT7BEd2PCJBCzurwtMuTqm
 Entropy Pool:  GDECYXCXietabJs9Y1baKzD3t4VFBw4eZWPnvYenyi77
 Node PDA:      z4Psp8qVfP4t3jiWHE29rrisTPMC78tu8LmDhRSEL3s
-Submissions:   7,000+ quantum decay events on-chain
+Submissions:   25,000+ quantum decay events on-chain
 Version:       v3 — VDF-secured Physical Entropy
 ```
 
@@ -141,27 +141,27 @@ console.log(Buffer.from(request.result).toString('hex'));
 
 ---
 
-## RADS Token — Coming Q2 2026
+## ENTROPY Token — Coming Q2 2026
 
-RADS is a novel token where supply is controlled entirely by radioactive decay.
+ENTROPY is a novel token where supply is controlled entirely by radioactive decay.
 ```
-Max Supply:  1,000,000 RADS — ever
+Max Supply:  1,000,000 ENTROPY — ever
 Emission:    4 years
 Mint:        Oracle program only — automatic
 
-Year 1: 400,000 RADS (40%) — highest rewards
-Year 2: 300,000 RADS (30%)
-Year 3: 200,000 RADS (20%)
-Year 4: 100,000 RADS (10%)
+Year 1: 250,000 ENTROPY (25%) — highest rewards
+Year 2: 250,000 ENTROPY (25%)
+Year 3: 250,000 ENTROPY (25%)
+Year 4: 250,000 ENTROPY (25%)
 ```
 
-**How to earn RADS:**
+**How to earn ENTROPY:**
 1. Buy a GMC-500 Geiger counter (~$100)
 2. Run the entropy daemon
 3. Register your node on X1
-4. Earn RADS automatically from every decay event
+4. Earn ENTROPY automatically from every decay event
 
-> "The universe controls the supply. No team can mint extra RADS. Ever." ☢️
+> "The universe controls the supply. No team can mint extra ENTROPY. Ever." ☢️
 
 ---
 
@@ -196,7 +196,8 @@ cd geiger-entropy-oracle/entropy-daemon
 pip install -r requirements.txt
 cp config.toml config-mainnet.toml
 # Edit config-mainnet.toml with your settings
-CONFIG_PATH=./config-mainnet.toml python3 daemon.py
+chmod +x start.sh
+./start.sh
 ```
 
 **Verify:**
@@ -214,7 +215,7 @@ curl http://localhost:8745/entropy
 {
   "status": "ok",
   "uptime_seconds": 3600,
-  "total_submissions": 7000,
+  "total_submissions": 25000,
   "latest_cpm": 20,
   "vdf_iters": 50000
 }
@@ -231,7 +232,7 @@ curl http://localhost:8745/entropy
   "signature": "ed25519...",
   "vdf_iters": 50000,
   "vdf_time_ms": 170.3,
-  "total_submissions": 7000
+  "total_submissions": 25000
 }
 ```
 
