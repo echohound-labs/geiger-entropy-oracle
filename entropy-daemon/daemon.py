@@ -416,7 +416,15 @@ def onchain_submitter(cfg: dict, entropy_queue: queue.Queue, logger: logging.Log
                 )
 
                 if commit_result.returncode != 0:
-                    logger.warning(f"Commit failed: {commit_result.stderr.strip()}")
+                    err = commit_result.stderr.strip()
+                    logger.warning(f"Commit failed: {err}")
+                    # If RPC timeout — wait and retry commit
+                    if "timeout" in err.lower() or "fetch failed" in err.lower() or "ECONNREFUSED" in err.lower():
+                        logger.warning("RPC timeout detected — waiting 10s then running recovery...")
+                        time.sleep(10)
+                        # Run recovery to clear any stuck state
+                        subprocess.run(["node", str(recover_script)], capture_output=True, text=True, timeout=30)
+                        logger.info("Recovery complete — resuming...")
                     continue
 
                 logger.info(f"Committed | seq={sequence} CPM={cpm}")
@@ -434,12 +442,14 @@ def onchain_submitter(cfg: dict, entropy_queue: queue.Queue, logger: logging.Log
                     logger.info(f"Revealed | seq={sequence} CPM={cpm} VDF={vdf_iters}iters")
                     sequence += 1
                 else:
-                    logger.warning(f"Reveal failed: {reveal_result.stderr.strip()}")
+                    err = reveal_result.stderr.strip()
+                    logger.warning(f"Reveal failed: {err}")
                     # Retry reveal up to 3 times before giving up
                     revealed = False
+                    retry_delay = 10 if ("timeout" in err.lower() or "fetch failed" in err.lower()) else 2
                     for retry in range(3):
-                        logger.info(f"Retrying reveal | attempt {retry+1}/3")
-                        time.sleep(2)
+                        logger.info(f"Retrying reveal | attempt {retry+1}/3 | waiting {retry_delay}s")
+                        time.sleep(retry_delay)
                         retry_result = subprocess.run(
                             ["node", str(reveal_script),
                              vdf_out_32, nonce, sig_hex, str(cpm), str(timestamp),
