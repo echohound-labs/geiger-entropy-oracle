@@ -45,6 +45,9 @@ async function main() {
   const signature = Array.from(Buffer.from(sigHex, "hex"));
   const cpm = parseInt(cpmStr);
   const timestamp = parseInt(timestampStr);
+  const deltaTMs = parseInt(process.argv[7] || "0");
+  const usvHMilli = parseInt(process.argv[8] || "0");
+  const vdfIters = parseInt(process.argv[9] || "0");
 
   // Wait for slot delay
   console.log("Waiting for commit-reveal delay...");
@@ -56,7 +59,10 @@ async function main() {
       nonce,
       cpm,
       new anchor.BN(timestamp),
-      signature
+      signature,
+      new anchor.BN(deltaTMs),
+      usvHMilli,
+      vdfIters
     )
     .accounts({
       oracleState: oracleStatePDA,

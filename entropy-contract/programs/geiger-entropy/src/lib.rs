@@ -221,6 +221,9 @@ pub mod geiger_entropy {
         cpm: u32,
         timestamp: i64,
         _signature: [u8; 64],
+        delta_t_ms: u64,
+        usv_h_milli: u32,
+        vdf_iters: u32,
     ) -> Result<()> {
         let clock = Clock::get()?;
         let pc = &mut ctx.accounts.pending_commitment;
@@ -266,9 +269,12 @@ pub mod geiger_entropy {
             vdf_output,
             cpm,
             timestamp,
+            delta_t_ms,
+            usv_h_milli,
+            vdf_iters,
         });
 
-        msg!("☢️ Entropy revealed | seq={} CPM={} verified✓", pc.sequence, cpm);
+        msg!("☢️ Entropy revealed | seq={} CPM={} uSv/h={:.3} dt={:.3}s VDF={}iters seed={:?} slot={} verified✓", pc.sequence, cpm, usv_h_milli as f64 / 1000.0, delta_t_ms as f64 / 1000.0, vdf_iters, &vdf_output[..4], clock.slot);
         Ok(())
     }
 
@@ -539,6 +545,9 @@ pub struct RevealEvent {
     pub vdf_output: [u8; 32],
     pub cpm: u32,
     pub timestamp: i64,
+    pub delta_t_ms: u64,
+    pub usv_h_milli: u32,
+    pub vdf_iters: u32,
 }
 
 #[event]

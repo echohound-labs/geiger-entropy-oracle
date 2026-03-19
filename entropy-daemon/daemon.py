@@ -332,6 +332,8 @@ def serial_collector(cfg: dict, state: EntropyState, private_key: Ed25519Private
                             "cpm": cpm,
                             "timestamp": timestamp,
                             "signature": signature,
+                            "usv_h": usv_h,
+                            "delta_t_ms": int(delta_ns / 1_000_000) if last_event_time is not None else 0,
                         })
 
                 last_event_time = now_ns
@@ -356,7 +358,7 @@ def onchain_submitter(cfg: dict, entropy_queue: queue.Queue, logger: logging.Log
     reveal_script = Path(__file__).parent / "mainnet" / "reveal_entropy.js"
 
     use_commit_reveal = commit_script.exists() and reveal_script.exists()
-    recover_script = Path(__file__).parent / "testnet" / "recover_commitment.js"
+    recover_script = Path(__file__).parent / "mainnet" / "recover_commitment.js"
 
     if use_commit_reveal:
         logger.info("On-chain submitter ready -- commit-reveal mode")
@@ -421,7 +423,10 @@ def onchain_submitter(cfg: dict, entropy_queue: queue.Queue, logger: logging.Log
 
                 reveal_result = subprocess.run(
                     ["node", str(reveal_script),
-                     vdf_out_32, nonce, sig_hex, str(cpm), str(timestamp)],
+                     vdf_out_32, nonce, sig_hex, str(cpm), str(timestamp),
+                     str(int(event.get("delta_t_ms", 0))),
+                     str(int(event.get("usv_h", 0) * 1000)),
+                     str(event.get("vdf_iters", 0))],
                     capture_output=True, text=True, timeout=60
                 )
 
@@ -430,6 +435,30 @@ def onchain_submitter(cfg: dict, entropy_queue: queue.Queue, logger: logging.Log
                     sequence += 1
                 else:
                     logger.warning(f"Reveal failed: {reveal_result.stderr.strip()}")
+                    # Retry reveal up to 3 times before giving up
+                    revealed = False
+                    for retry in range(3):
+                        logger.info(f"Retrying reveal | attempt {retry+1}/3")
+                        time.sleep(2)
+                        retry_result = subprocess.run(
+                            ["node", str(reveal_script),
+                             vdf_out_32, nonce, sig_hex, str(cpm), str(timestamp),
+                             str(int(event.get("delta_t_ms", 0))),
+                             str(int(event.get("usv_h", 0) * 1000)),
+                             str(event.get("vdf_iters", 0))],
+                            capture_output=True, text=True, timeout=60
+                        )
+                        if retry_result.returncode == 0:
+                            logger.info(f"✓ Reveal retry succeeded | seq={sequence}")
+                            sequence += 1
+                            revealed = True
+                            break
+                        else:
+                            logger.warning(f"Reveal retry {retry+1} failed: {retry_result.stderr.strip()[:100]}")
+                    if not revealed:
+                        logger.error(f"Reveal failed after 3 retries — running recovery")
+                        subprocess.run(["node", str(recover_script)], capture_output=True, text=True, timeout=30)
+                        sequence += 1
 
             else:
                 result = subprocess.run(
