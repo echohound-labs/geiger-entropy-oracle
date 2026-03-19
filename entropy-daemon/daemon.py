@@ -419,7 +419,7 @@ def onchain_submitter(cfg: dict, entropy_queue: queue.Queue, logger: logging.Log
                     err = commit_result.stderr.strip()
                     logger.warning(f"Commit failed: {err}")
                     # If RPC timeout — wait and retry commit
-                    if "timeout" in err.lower() or "fetch failed" in err.lower() or "ECONNREFUSED" in err.lower():
+                    if any(x in err.lower() for x in ["timeout", "timed out", "fetch failed", "econnrefused", "etimedout", "connecttimeout"]):
                         logger.warning("RPC timeout detected — waiting 10s then running recovery...")
                         time.sleep(10)
                         # Run recovery to clear any stuck state
