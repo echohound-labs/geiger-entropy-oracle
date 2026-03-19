@@ -249,7 +249,25 @@ Version:       v3 (VDF-secured Physical Entropy)
 
 ---
 
-## 5. RADS Token
+## 4.5 Commit-Reveal Scheme — LIVE on Mainnet (March 19, 2026)
+
+The commit-reveal scheme is now live on X1 Mainnet alongside device fingerprinting and auto-recovery.
+
+**How it works:**
+- Operator computes SHA256(vdf_output || nonce) and posts BLIND commitment on-chain
+- Waits 3 slots (~1.2 seconds) — cannot react in this time
+- Reveals vdf_output + nonce — contract verifies hash matches
+- Rich data logged on-chain: seq, CPM, µSv/h, Δt, VDF iters, seed, slot
+
+**Slash mechanism:** If operator fails to reveal within 128 slots, anyone can slash them 0.1 SOL. Reporter earns the bounty. Makes withholding economically irrational.
+
+**Resilience:** Auto-recovery on startup, RPC timeout detection, reveal retry logic (3 attempts), device fingerprint verification on every start.
+
+**Attacks closed:** Cherry picking, front-running, selective withholding, post-event manipulation.
+
+---
+
+## 5. ENTROPY Token
 
 ### 5.1 Overview
 

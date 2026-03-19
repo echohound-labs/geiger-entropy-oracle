@@ -15,8 +15,8 @@ Program ID:    BxUNg2yo5371BQMZPkfcxdCptFRDHkhvEXNM1QNPBRYU
 Oracle State:  BygMTZ1oLBD9tDmssnt9LkNT7BEd2PCJBCzurwtMuTqm
 Entropy Pool:  GDECYXCXietabJs9Y1baKzD3t4VFBw4eZWPnvYenyi77
 Node PDA:      z4Psp8qVfP4t3jiWHE29rrisTPMC78tu8LmDhRSEL3s
-Submissions:   25,000+ quantum decay events on-chain
-Version:       v3 — VDF-secured Physical Entropy
+Submissions:   30,000+ quantum decay events on-chain
+Version:       v4 — Commit-Reveal + Device Fingerprint + VDF
 ```
 
 [📄 Read the Whitepaper](docs/whitepaper.md) | [🔍 Explorer](https://explorer.mainnet.x1.xyz/address/BxUNg2yo5371BQMZPkfcxdCptFRDHkhvEXNM1QNPBRYU) | [💬 Telegram](https://t.me/+axtvX9GbsnJkMGRh)
@@ -43,7 +43,7 @@ Entropy is derived from the time between decay events (Δt), which follows a Poi
 
 ---
 
-## Architecture — v3 (VDF-secured Physical Entropy)
+## Architecture — v4 (Commit-Reveal + Device Fingerprint + VDF)
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │                    GMC-500+ Geiger Counter                   │
@@ -61,17 +61,21 @@ Entropy is derived from the time between decay events (Δt), which follows a Poi
 │  • SHA256(Δt + timestamp + CPM + CPS) = raw seed            │
 │  • Wesolowski VDF(seed, dynamic_iters) = tamper-proof       │
 │  • Ed25519 signs final seed                                 │
-│  • pushes to entropy queue                                  │
+│  • BLIND commit hash on-chain (commit-reveal)               │
+│  • reveal after 3 slots — verified on-chain                 │
+│  • auto-recovery on RPC timeout or restart                  │
+│  • slash mechanism for missed reveals                       │
 └──────────────────────────┬──────────────────────────────────┘
                            │ Solana TX
                            ▼
 ┌─────────────────────────────────────────────────────────────┐
 │              Geiger Entropy Oracle (Anchor / X1)             │
 │                                                              │
-│  submit_entropy()     → verify sig → store in pool          │
+│  commit_entropy()     → blind hash on-chain                 │
+│  reveal_entropy()     → verify + store in pool              │
+│  slash_missed_reveal()→ slash operator for missed reveal    │
 │  request_randomness() → commit user seed                    │
 │  fulfill_randomness() → XOR user seed + oracle pool         │
-│                         → emit RandomnessResult event       │
 └──────────────────────────┬──────────────────────────────────┘
                            ▓
             Your dApp: NFT mints, lotteries, games...
