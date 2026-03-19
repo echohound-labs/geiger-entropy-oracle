@@ -2,7 +2,7 @@
 use anchor_lang::prelude::*;
 use sha2::{Sha256, Digest};
 
-declare_id!("2dQf9uaCzXewrDNLttmtzQmc3SmqfAHz3qahKQjtGQyY");
+declare_id!("BxUNg2yo5371BQMZPkfcxdCptFRDHkhvEXNM1QNPBRYU");
 
 pub const ORACLE_STATE_SEED: &[u8] = b"oracle_state";
 pub const ENTROPY_NODE_SEED: &[u8] = b"entropy_node";
