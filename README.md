@@ -104,6 +104,9 @@ Ed25519 signed  = verifiable on-chain
 | Physical Entropy | No | No | Yes ✓ |
 | Deployed on X1 | ❌ | ❌ | ✅ Live |
 | Node Cost | High | High | ~$155 |
+| Commit-Reveal | No | No | Yes ✓ |
+| Device Fingerprint | No | No | Yes ✓ |
+| Auto-Recovery | No | No | Yes ✓ |
 
 ---
 
@@ -198,8 +201,10 @@ Total:                   ~$135
 **Quick Start:**
 ```bash
 git clone https://github.com/echohound-labs/geiger-entropy-oracle
-cd geiger-entropy-oracle/entropy-daemon
-pip install -r requirements.txt
+cd geiger-entropy-oracle/entropy-contract
+npm install
+cd ../entropy-daemon
+pip3 install -r requirements.txt --break-system-packages
 cp config.toml config-mainnet.toml
 # Edit config-mainnet.toml with your settings
 chmod +x start.sh
@@ -208,8 +213,8 @@ chmod +x start.sh
 
 **Verify:**
 ```bash
-curl http://localhost:8745/health
-curl http://localhost:8745/entropy
+curl http://localhost:8746/health
+curl http://localhost:8746/entropy
 ```
 
 ---
@@ -221,7 +226,7 @@ curl http://localhost:8745/entropy
 {
   "status": "ok",
   "uptime_seconds": 3600,
-  "total_submissions": 25000,
+  "total_submissions": 30000,
   "latest_cpm": 20,
   "vdf_iters": 50000
 }
@@ -238,7 +243,7 @@ curl http://localhost:8745/entropy
   "signature": "ed25519...",
   "vdf_iters": 50000,
   "vdf_time_ms": 170.3,
-  "total_submissions": 25000
+  "total_submissions": 30000
 }
 ```
 
@@ -273,7 +278,10 @@ geiger-entropy-oracle/
 ├── entropy-contract/     Anchor smart contract (Rust)
 ├── entropy-daemon/       Python entropy daemon (VDF-secured)
 └── docs/
-    └── whitepaper.md     Full technical whitepaper
+    ├── whitepaper.md     Full technical whitepaper
+    ├── setup-guide.md    Node operator setup guide
+    ├── deployments.md    Network addresses & branch mapping
+    └── operations.md     Critical operations guide
 ```
 
 ---
