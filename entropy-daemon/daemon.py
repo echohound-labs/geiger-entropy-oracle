@@ -55,6 +55,45 @@ def setup_logging(level: str = "INFO") -> logging.Logger:
     )
     return logging.getLogger("geiger-entropy")
 
+FINGERPRINT_FILE = Path(__file__).parent / ".geiger_device_fingerprint"
+
+def get_device_fingerprint(port: str) -> str:
+    import serial as pyserial
+    usb_info = "unknown:unknown"
+    for p in list_ports.comports():
+        if p.device == port:
+            usb_info = f"{p.vid}:{p.pid}"
+            break
+    try:
+        ser = pyserial.Serial(port, 115200, timeout=2)
+        ser.write(b'<GETVER>>')
+        model = ser.read(14).decode(errors='ignore').strip()
+        ser.write(b'<GETSERIAL>>')
+        device_serial = ser.read(7).hex()
+        ser.close()
+    except Exception as e:
+        raise RuntimeError(f"Cannot read device identity: {e}")
+    fingerprint_data = f"{usb_info}:{model}:{device_serial}"
+    return hashlib.sha256(fingerprint_data.encode()).hexdigest()
+
+def verify_device_fingerprint(port: str, logger: logging.Logger) -> bool:
+    try:
+        current = get_device_fingerprint(port)
+    except RuntimeError as e:
+        logger.error(f"Device fingerprint error: {e}")
+        return False
+    if FINGERPRINT_FILE.exists():
+        stored = FINGERPRINT_FILE.read_text().strip()
+        if current != stored:
+            logger.error(f"🚨 DEVICE FINGERPRINT MISMATCH! Refusing to start!")
+            return False
+        logger.info(f"✓ Device fingerprint verified: {current[:16]}...")
+        return True
+    else:
+        FINGERPRINT_FILE.write_text(current)
+        logger.info(f"✓ Device fingerprint registered: {current[:16]}...")
+        return True
+
 # ---------------------------------------------------------------------------
 # Keypair
 # ---------------------------------------------------------------------------
@@ -302,10 +341,14 @@ def onchain_submitter(cfg: dict, entropy_queue: queue.Queue, logger: logging.Log
             )
 
             if result.returncode == 0:
-                logger.info(f"✓ On-chain submission OK | CPM={cpm} | VDF={event['vdf_iters']}iters")
+                logger.info(f"⚡ Submitted | CPM={cpm}")
                 logger.debug(result.stdout.strip())
             else:
-                logger.warning(f"On-chain submission failed: {result.stderr.strip()}")
+                err = result.stderr.strip()
+                logger.warning(f"Submission failed: {err[:100]}")
+                if any(x in err.lower() for x in ["timeout", "timed out", "fetch failed", "econnrefused"]):
+                    logger.warning("RPC timeout — waiting 5s before retry...")
+                    time.sleep(5)
 
         except queue.Empty:
             logger.debug("No entropy events in last 60s — is Geiger counter running?")
