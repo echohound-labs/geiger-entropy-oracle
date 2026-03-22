@@ -485,8 +485,18 @@ def onchain_submitter(cfg: dict, entropy_queue: queue.Queue, logger: logging.Log
         except queue.Empty:
             logger.debug("No entropy events in last 60s -- is Geiger counter running?")
         except Exception as e:
-            logger.error(f"Submitter error: {e}")
-            time.sleep(5)
+            err = str(e)
+            logger.error(f"Submitter error: {err}")
+            if any(x in err.lower() for x in ["timeout", "timed out", "fetch failed", "econnrefused", "etimedout"]):
+                logger.warning("RPC timeout in submitter — running recovery...")
+                time.sleep(10)
+                try:
+                    subprocess.run(["node", str(recover_script)], capture_output=True, text=True, timeout=30)
+                    logger.info("Recovery complete — resuming...")
+                except Exception:
+                    pass
+            else:
+                time.sleep(5)
 
 # ---------------------------------------------------------------------------
 # FastAPI
