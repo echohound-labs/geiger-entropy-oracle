@@ -151,16 +151,19 @@ pub mod geiger_entropy {
 
         let pool = &ctx.accounts.entropy_pool;
         // SHA256 chained pool mixing — stronger than XOR, stack-safe on-chain
+        // Domain separated — prevents cross-protocol collisions (GEIGER_POOL_V1)
         // Future-proof for multi-node — each seed cryptographically chained
         let mut pool_seed = [0u8; 32];
         for seed in &pool.seeds {
             let mut h = Sha256::new();
+            h.update(b"GEIGER_POOL_V1");
             h.update(&pool_seed);
             h.update(seed);
             pool_seed = h.finalize().into();
         }
-        // Final result: SHA256(user_seed || pool_seed)
+        // Final result: SHA256(GEIGER_POOL_V1 || user_seed || pool_seed)
         let mut final_hasher = Sha256::new();
+        final_hasher.update(b"GEIGER_POOL_V1");
         final_hasher.update(&request.user_seed);
         final_hasher.update(&pool_seed);
         let result: [u8; 32] = final_hasher.finalize().into();
