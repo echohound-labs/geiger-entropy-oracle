@@ -71,6 +71,7 @@ async function main() {
       entropyNode: entropyNodePDA,
       operator: wallet.publicKey,
       systemProgram: anchor.web3.SystemProgram.programId,
+      slotHashes: new PublicKey("SysvarS1otHashes111111111111111111111111111"),
     })
     .rpc();
 
