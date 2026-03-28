@@ -1,6 +1,7 @@
 //! Geiger Entropy Oracle — X1 Anchor Program
 use anchor_lang::prelude::*;
 use sha2::{Sha256, Digest};
+use blake3;
 
 declare_id!("BxUNg2yo5371BQMZPkfcxdCptFRDHkhvEXNM1QNPBRYU");
 
@@ -149,17 +150,20 @@ pub mod geiger_entropy {
         );
 
         let pool = &ctx.accounts.entropy_pool;
-        let mut pool_seed = [0u8; 32];
+        // BLAKE3 pool mixing — stronger than XOR, future-proof for multi-node
+        let mut hasher = blake3::Hasher::new();
         for seed in &pool.seeds {
-            for i in 0..32 {
-                pool_seed[i] ^= seed[i];
-            }
+            hasher.update(seed);
         }
+        let pool_hash = hasher.finalize();
+        let pool_seed: [u8; 32] = *pool_hash.as_bytes();
 
-        let mut result = [0u8; 32];
-        for i in 0..32 {
-            result[i] = request.user_seed[i] ^ pool_seed[i];
-        }
+        // Final result: BLAKE3(user_seed || pool_seed)
+        let mut final_hasher = blake3::Hasher::new();
+        final_hasher.update(&request.user_seed);
+        final_hasher.update(&pool_seed);
+        let result_hash = final_hasher.finalize();
+        let result: [u8; 32] = *result_hash.as_bytes();
 
         let requester = request.requester;
         request.result = result;
@@ -248,10 +252,28 @@ pub mod geiger_entropy {
         let computed_hash: [u8; 32] = hasher.finalize().into();
         require!(computed_hash == pc.commitment_hash, GeigerError::CommitmentMismatch);
 
-        // Store in entropy pool
+        // Read current slot hash from SlotHashes sysvar for binding
+        let slot_hashes_data = ctx.accounts.slot_hashes.try_borrow_data()?;
+        // SlotHashes sysvar layout: 8 bytes length, then entries of (slot: u64, hash: [u8;32])
+        let binding_slot = clock.slot;
+        let mut slot_hash = [0u8; 32];
+        if slot_hashes_data.len() >= 48 {
+            // First entry is most recent slot hash — bytes 8..16 = slot, 16..48 = hash
+            slot_hash.copy_from_slice(&slot_hashes_data[16..48]);
+        }
+        drop(slot_hashes_data);
+
+        // Mix: SHA256(vdf_output || slot_hash || sequence_bytes) = final bound seed
+        let mut hasher = Sha256::new();
+        hasher.update(&vdf_output);
+        hasher.update(&slot_hash);
+        hasher.update(&pc.sequence.to_le_bytes());
+        let bound_seed: [u8; 32] = hasher.finalize().into();
+
+        // Store bound seed in entropy pool (not raw vdf_output)
         let pool = &mut ctx.accounts.entropy_pool;
         let idx = (pool.head as usize) % POOL_CAPACITY;
-        pool.seeds[idx] = vdf_output;
+        pool.seeds[idx] = bound_seed;
         pool.head = pool.head.wrapping_add(1);
         pool.total_submissions = pool.total_submissions.saturating_add(1);
 
@@ -274,7 +296,11 @@ pub mod geiger_entropy {
             vdf_iters,
         });
 
-        msg!("☢️ Entropy revealed | seq={} CPM={} uSv/h={:.3} dt={:.3}s VDF={}iters seed={:?} slot={} verified✓", pc.sequence, cpm, usv_h_milli as f64 / 1000.0, delta_t_ms as f64 / 1000.0, vdf_iters, &vdf_output[..4], clock.slot);
+        // sources_bitmap: 0x01=geiger 0x02=vdf 0x04=slothash — all three active
+        let sources_bitmap: u8 = 0x07;
+        msg!("☢️ Entropy revealed | seq={} CPM={} uSv/h={:.3} dt={:.3}s VDF={}iters seed={:?} slot_hash={:?} binding_slot={} sources=0x{:02x} verified✓",
+            pc.sequence, cpm, usv_h_milli as f64 / 1000.0, delta_t_ms as f64 / 1000.0,
+            vdf_iters, &bound_seed[..4], &slot_hash[..4], binding_slot, sources_bitmap);
         Ok(())
     }
 
@@ -675,6 +701,9 @@ pub struct RevealEntropy<'info> {
     #[account(mut)]
     pub operator: Signer<'info>,
     pub system_program: Program<'info, System>,
+    /// CHECK: SlotHashes sysvar for on-chain entropy binding
+    #[account(address = anchor_lang::solana_program::sysvar::slot_hashes::ID)]
+    pub slot_hashes: AccountInfo<'info>,
 }
 
 #[derive(Accounts)]
