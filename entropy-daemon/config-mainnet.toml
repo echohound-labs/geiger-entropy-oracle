@@ -21,3 +21,7 @@ program_id = "BxUNg2yo5371BQMZPkfcxdCptFRDHkhvEXNM1QNPBRYU"
 oracle_state = "BygMTZ1oLBD9tDmssnt9LkNT7BEd2PCJBCzurwtMuTqm"
 entropy_pool = "GDECYXCXietabJs9Y1baKzD3t4VFBw4eZWPnvYenyi77"
 entropy_node = "z4Psp8qVfP4t3jiWHE29rrisTPMC78tu8LmDhRSEL3s"
+
+[tuning]
+cycle_sleep_seconds = 15
+vdf_iters_low_cpm = 50000
