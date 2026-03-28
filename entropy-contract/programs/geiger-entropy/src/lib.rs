@@ -150,20 +150,20 @@ pub mod geiger_entropy {
         );
 
         let pool = &ctx.accounts.entropy_pool;
-        // BLAKE3 pool mixing — stronger than XOR, future-proof for multi-node
-        let mut hasher = blake3::Hasher::new();
+        // SHA256 chained pool mixing — stronger than XOR, stack-safe on-chain
+        // Future-proof for multi-node — each seed cryptographically chained
+        let mut pool_seed = [0u8; 32];
         for seed in &pool.seeds {
-            hasher.update(seed);
+            let mut h = Sha256::new();
+            h.update(&pool_seed);
+            h.update(seed);
+            pool_seed = h.finalize().into();
         }
-        let pool_hash = hasher.finalize();
-        let pool_seed: [u8; 32] = *pool_hash.as_bytes();
-
-        // Final result: BLAKE3(user_seed || pool_seed)
-        let mut final_hasher = blake3::Hasher::new();
+        // Final result: SHA256(user_seed || pool_seed)
+        let mut final_hasher = Sha256::new();
         final_hasher.update(&request.user_seed);
         final_hasher.update(&pool_seed);
-        let result_hash = final_hasher.finalize();
-        let result: [u8; 32] = *result_hash.as_bytes();
+        let result: [u8; 32] = final_hasher.finalize().into();
 
         let requester = request.requester;
         request.result = result;
