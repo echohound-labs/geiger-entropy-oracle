@@ -489,12 +489,13 @@ def onchain_submitter(cfg: dict, entropy_queue: queue.Queue, logger: logging.Log
             logger.error(f"Submitter error: {err}")
             if any(x in err.lower() for x in ["timeout", "timed out", "fetch failed", "econnrefused", "etimedout"]):
                 logger.warning("RPC timeout in submitter — running recovery...")
-                time.sleep(10)
+                time.sleep(15)
                 try:
-                    subprocess.run(["node", str(recover_script)], capture_output=True, text=True, timeout=30)
-                    logger.info("Recovery complete — resuming...")
-                except Exception:
-                    pass
+                    result = subprocess.run(["node", str(recover_script)], capture_output=True, text=True, timeout=60)
+                    logger.info(f"Recovery complete — resuming... {result.stdout.strip()[:50]}")
+                except Exception as re:
+                    logger.warning(f"Recovery error: {re}")
+                time.sleep(15)
             else:
                 time.sleep(5)
 
