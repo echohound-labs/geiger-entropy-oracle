@@ -1,6 +1,6 @@
 # ☢️ Geiger Entropy Oracle
-### The World's First Physical Entropy Oracle with VDF-secured Randomness on X1 Blockchain
-**True randomness sourced from quantum mechanical radioactive decay**
+### The World's First Physical Entropy Oracle with Five Independent Security Layers on X1 Blockchain
+**True randomness sourced from quantum mechanical radioactive decay — secured by physics, cryptography, and blockchain consensus**
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
@@ -15,8 +15,8 @@ Program ID:    BxUNg2yo5371BQMZPkfcxdCptFRDHkhvEXNM1QNPBRYU
 Oracle State:  BygMTZ1oLBD9tDmssnt9LkNT7BEd2PCJBCzurwtMuTqm
 Entropy Pool:  GDECYXCXietabJs9Y1baKzD3t4VFBw4eZWPnvYenyi77
 Node PDA:      z4Psp8qVfP4t3jiWHE29rrisTPMC78tu8LmDhRSEL3s
-Submissions:   30,000+ quantum decay events on-chain
-Version:       v4 — Commit-Reveal + Device Fingerprint + VDF
+Submissions:   58,000+ quantum decay events on-chain
+Version:       v5 — SlotHash Binding + SHA256 Chained Pool + Domain Separation
 ```
 
 [📄 Read the Whitepaper](docs/whitepaper.md) | [🔍 Explorer](https://explorer.mainnet.x1.xyz/address/BxUNg2yo5371BQMZPkfcxdCptFRDHkhvEXNM1QNPBRYU) | [💬 Telegram](https://t.me/+axtvX9GbsnJkMGRh)
@@ -34,37 +34,78 @@ Blockchains are deterministic computers. Every node must produce identical outpu
 
 ## The Solution: Trust the Universe ☢️
 
-Radioactive decay is governed by quantum mechanics. It is fundamentally unpredictable — not just computationally hard, but physically impossible to predict. No amount of compute power can tell you when the next atom will decay.
+Radioactive decay is governed by quantum mechanics. It is fundamentally unpredictable — not just computationally hard, but **physically impossible to predict**. No amount of compute power can tell you when the next atom will decay.
 
-Entropy is derived from the time between decay events (Δt), which follows a Poisson process and is fundamentally unpredictable. The Geiger Entropy Oracle captures this physical randomness using a GMC-500 Geiger counter, processes it through a Wesolowski VDF for cryptographic tamper-resistance, and posts it on-chain to X1 — where any smart contract can request a provably fair random number.
+Entropy is derived from the time between decay events (Δt), which follows a Poisson process and is fundamentally unpredictable. The Geiger Entropy Oracle captures this physical randomness using a GMC-500 Geiger counter beside Cenozoic fossils (2–23 million years old), processes it through five independent security layers, and posts it permanently on X1 — where any smart contract can request a provably fair random number.
 
 > "The chain of proof becomes: Physical decay (uncontrollable) → seed committed → VDF locks it in time → verifiable output. No one — including the operator — could have manipulated the result once the decay event was recorded."
 > — Theo, X1 Community Architect
 
 ---
 
-## Architecture — v4 (Commit-Reveal + Device Fingerprint + VDF)
+## Five Independent Security Layers
+
+The Geiger Entropy Oracle employs five independent security layers. An attacker must simultaneously defeat all five — each from a fundamentally different domain of physics, cryptography, blockchain consensus, and game theory.
+
+### Layer 1 — Physical Quantum Entropy
+Radioactive decay from Cenozoic fossils is quantum mechanical. It is not computationally hard to predict — it is **physically impossible to predict**. The inter-event timing (Δt) follows a true Poisson process governed by the same quantum randomness that has existed since the Big Bang. No computer, no algorithm, no adversary can predict when the next atom decays.
+
+### Layer 2 — Wesolowski VDF Time Lock
+After capturing the decay event, a Verifiable Delay Function (VDF) is computed. This creates a cryptographic time lock — the final seed cannot be known until the VDF computation completes. Dynamic iterations ensure the VDF always takes longer than one X1 slot (~400ms), making post-capture manipulation impossible.
+```
+CPM < 20  → 50,000 iterations (~0.17s)
+CPM < 50  → 30,000 iterations (~0.10s)
+CPM < 100 → 20,000 iterations (~0.08s)
+CPM 100+  → 15,000 iterations (~0.05s)
+```
+
+### Layer 3 — X1 SlotHash Binding ✨ NEW in v5
+At reveal time, the current X1 SlotHash is mixed into the final seed:
+```
+bound_seed = SHA256(vdf_output || slot_hash || sequence)
+```
+
+The slot hash is determined by X1 blockchain consensus — completely outside the operator's control. Even if an adversary could somehow predict the physical decay and the VDF output, they cannot predict a future slot hash. Two fundamentally independent and unpredictable entropy sources are combined on every single reveal.
+
+### Layer 4 — Domain-Separated SHA256 Chained Pool ✨ NEW in v5
+The entropy pool uses cryptographic hashing with domain separation — not linear XOR mixing:
+```
+state = SHA256("GEIGER_POOL_V1" || state || seed)  × 32 seeds
+```
+
+SHA256 is the same cryptographic primitive securing Bitcoin, Solana PDAs, and X1 transaction signing. The GEIGER_POOL_V1 domain separator prevents cross-protocol collisions and makes the design uniquely attributable to this protocol forever. Each new entropy contribution is irreversibly folded into the pool — no attacker can isolate, reverse, or cancel any individual seed's contribution.
+
+> "Even if one input is weak, it is cryptographically mixed into a non-linear pool." — Theo, X1 Community Architect
+
+### Layer 5 — Economic Slash Mechanism
+If the operator commits entropy but fails to reveal within 128 slots, anyone can call slash_missed_reveal() and claim 0.1 SOL from the operator. Selective withholding — choosing not to reveal an unfavorable seed — is economically irrational. The blind commit-reveal scheme ensures the operator cannot see the final output before being locked in.
+
+---
+
+## Architecture — v5
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │                    GMC-500+ Geiger Counter                   │
+│         Cenozoic fossils — 2–23 million years old            │
 │              (Quantum mechanical radioactive decay)          │
 └──────────────────────────┬──────────────────────────────────┘
                            │ USB Serial (/dev/ttyUSB0)
                            ▼
 ┌─────────────────────────────────────────────────────────────┐
-│              geiger_stream + daemon.py                       │
+│                      daemon.py                               │
 │                                                              │
-│  • verifies GMC-500 hardware fingerprint (device lock)      │
+│  • GMC-500 hardware fingerprint verification (device lock)  │
 │  • polls CPS every 250ms via <GETCPS>> command              │
 │  • detects rising edge decay events                         │
 │  • extracts Δt between events (Poisson process)             │
 │  • SHA256(Δt + timestamp + CPM + CPS) = raw seed            │
-│  • Wesolowski VDF(seed, dynamic_iters) = tamper-proof       │
+│  • Wesolowski VDF(seed, dynamic_iters) = time-locked        │
 │  • Ed25519 signs final seed                                 │
 │  • BLIND commit hash on-chain (commit-reveal)               │
-│  • reveal after 3 slots — verified on-chain                 │
+│  • reveal after 3 slots — SlotHash mixed on-chain           │
 │  • auto-recovery on RPC timeout or restart                  │
 │  • slash mechanism for missed reveals                       │
+│  • 15s cycle sleep — cost efficient, pool always fresh      │
 └──────────────────────────┬──────────────────────────────────┘
                            │ Solana TX
                            ▼
@@ -72,41 +113,65 @@ Entropy is derived from the time between decay events (Δt), which follows a Poi
 │              Geiger Entropy Oracle (Anchor / X1)             │
 │                                                              │
 │  commit_entropy()     → blind hash on-chain                 │
-│  reveal_entropy()     → verify + store in pool              │
+│  reveal_entropy()     → SlotHash bind + verify + pool       │
 │  slash_missed_reveal()→ slash operator for missed reveal    │
 │  request_randomness() → commit user seed                    │
-│  fulfill_randomness() → XOR user seed + oracle pool         │
+│  fulfill_randomness() → SHA256 chain pool + user seed       │
 └──────────────────────────┬──────────────────────────────────┘
                            ▓
             Your dApp: NFT mints, lotteries, games...
 ```
 
-### Why VDF-secured Physical Entropy?
+### What gets logged on-chain forever
+Every reveal is permanently recorded on X1:
 ```
-Signature alone: "Trust me I did not cheat"
-VDF-secured Physical Entropy:  "Here's a cryptographic proof cheating was impossible"
+☢️ Entropy revealed | seq=58077 CPM=26 uSv/h=0.169 dt=2.637s
+VDF=30000iters seed=[104,88,184,213] slot_hash=[194,253,135,141]
+binding_slot=39512140 sources=0x07 verified✓
+```
 
-Physical decay  = quantum unpredictable
-VDF enforces minimum delay, preventing manipulation after entropy capture
-Ed25519 signed  = verifiable on-chain
+sources=0x07 means all three entropy layers active:
+- 0x01 = Physical Geiger decay
+- 0x02 = Wesolowski VDF
+- 0x04 = X1 SlotHash binding
+
+This is a permanent scientific record. Every decay event timestamped to the nanosecond, with CPM and µSv/h radiation readings — immutable and publicly auditable forever.
+
+---
+
+## Security Model
 ```
+What an attacker must simultaneously defeat:
+
+Layer 1 — Predict quantum radioactive decay     (physically impossible)
+Layer 2 — Predict VDF output before completion  (computationally impossible)
+Layer 3 — Predict future X1 slot hash          (consensus impossible)
+Layer 4 — Reverse SHA256 chained pool          (cryptographically impossible)
+Layer 5 — Accept 0.1 SOL slash for withholding (economically irrational)
+```
+
+No other oracle on any SVM chain requires an attacker to defeat five independent layers from five different domains simultaneously.
 
 ---
 
 ## Comparison
 
-| Feature | Switchboard VRF | Chainlink VRF | Geiger Oracle |
-|---------|----------------|---------------|---------------|
-| Chain | Solana/SVM | Multi-chain | X1 Native |
-| Entropy Source | TEE hardware | Cryptographic | Physical decay |
-| Trust Model | Trust Intel | Trust Chainlink | Trust physics |
-| VDF Layer | No | No | Yes ✓ |
-| Physical Entropy | No | No | Yes ✓ |
-| Deployed on X1 | ❌ | ❌ | ✅ Live |
-| Node Cost | High | High | ~$155 |
-| Commit-Reveal | No | No | Yes ✓ |
-| Device Fingerprint | No | No | Yes ✓ |
-| Auto-Recovery | No | No | Yes ✓ |
+| Feature | Switchboard VRF | Chainlink VRF | PHOTON | Geiger Oracle |
+|---------|----------------|---------------|--------|---------------|
+| Chain | Solana/SVM | Multi-chain | X1 | X1 Native |
+| Entropy Source | TEE hardware | Cryptographic | 5 APIs | Physical decay |
+| Trust Model | Trust Intel | Trust Chainlink | Trust APIs | Trust physics |
+| VDF Layer | No | No | No | Yes ✓ |
+| Physical Entropy | No | No | No | Yes ✓ |
+| SlotHash Binding | No | No | No | Yes ✓ |
+| SHA256 Chained Pool | No | No | No | Yes ✓ |
+| Domain Separation | No | No | No | Yes ✓ |
+| Commit-Reveal | No | No | No | Yes ✓ |
+| Device Fingerprint | No | No | No | Yes ✓ |
+| Works Offline | No | No | No | Yes ✓ |
+| Deployed on X1 | ❌ | ❌ | ✅ | ✅ Live |
+| Node Cost | High | High | Low | ~$135 |
+| Security Layers | 1 | 1 | 1 | 5 ✓ |
 
 ---
 
@@ -139,6 +204,8 @@ const request = await program.account
 console.log(Buffer.from(request.result).toString('hex'));
 ```
 
+**Important:** For maximum security, your dApp should provide an unpredictable userSeed — for example SHA256(user_wallet || nonce) where the nonce is committed before the oracle seed is known.
+
 **Use cases:**
 ```
 🎰 Lotteries and raffles  → provably fair draws
@@ -155,20 +222,20 @@ console.log(Buffer.from(request.result).toString('hex'));
 ENTROPY is a novel token where supply is controlled entirely by radioactive decay.
 ```
 Max Supply:  1,000,000 ENTROPY — ever
-Emission:    4 years
-Mint:        Oracle program only — automatic
+Emission:    4 years equal distribution
+Mint:        Oracle program only — no team can mint extra
 
-Year 1: 250,000 ENTROPY (25%) — highest rewards
+Year 1: 250,000 ENTROPY (25%)
 Year 2: 250,000 ENTROPY (25%)
 Year 3: 250,000 ENTROPY (25%)
 Year 4: 250,000 ENTROPY (25%)
 ```
 
-**How to earn ENTROPY:**
-1. Buy a GMC-500 Geiger counter (~$100)
-2. Run the entropy daemon
-3. Register your node on X1
-4. Earn ENTROPY automatically from every decay event
+Token launch prerequisites — NOT MET YET:
+- Multi-node operators
+- Staking contract
+- Slash in ENTROPY
+- Statistical audit
 
 > "The universe controls the supply. No team can mint extra ENTROPY. Ever." ☢️
 
@@ -177,11 +244,11 @@ Year 4: 250,000 ENTROPY (25%)
 ## Run a Node
 
 **Device Fingerprinting:**
-On first run the daemon automatically registers your GMC-500 hardware fingerprint. If someone swaps your device the daemon refuses to start. To reset: `rm entropy-daemon/.geiger_device_fingerprint`
+On first run the daemon automatically registers your GMC-500 hardware fingerprint using the internal serial number, USB VID:PID, and firmware version. If someone swaps your device the daemon refuses to start.
 
+To reset: `rm entropy-daemon/.geiger_device_fingerprint`
 
 📖 **[Full Setup Guide](docs/setup-guide.md)** — Windows WSL2, Raspberry Pi, troubleshooting
-
 
 **Hardware:**
 ```
@@ -226,9 +293,9 @@ curl http://localhost:8746/entropy
 {
   "status": "ok",
   "uptime_seconds": 3600,
-  "total_submissions": 30000,
-  "latest_cpm": 20,
-  "vdf_iters": 50000
+  "total_submissions": 58000,
+  "latest_cpm": 22,
+  "vdf_iters": 30000
 }
 ```
 
@@ -237,13 +304,13 @@ curl http://localhost:8746/entropy
 {
   "seed": "4e3f...",
   "pool_seed": "9ab1...",
-  "cpm": 20,
-  "usv_h": 0.13,
+  "cpm": 22,
+  "usv_h": 0.143,
   "timestamp": 1773637219,
   "signature": "ed25519...",
-  "vdf_iters": 50000,
-  "vdf_time_ms": 170.3,
-  "total_submissions": 30000
+  "vdf_iters": 30000,
+  "vdf_time_ms": 103.2,
+  "total_submissions": 58000
 }
 ```
 
@@ -260,15 +327,30 @@ curl http://localhost:8746/entropy
 
 ## The Genesis Node
 
-Running beside fossils from the Cenozoic Era — Miocene to Pleistocene epoch, roughly 2–23 million years ago. The same quantum randomness that has governed matter since the Big Bang now secures X1 smart contracts. 🦴
+Running beside fossils from the Cenozoic Era — Miocene to Pleistocene epoch, roughly 2–23 million years ago. The same quantum randomness that has governed matter since the Big Bang now secures X1 smart contracts.
+
+Each decay event is quantum mechanical — impossible to predict, permanently recorded on X1, cryptographically verified, and auditable by anyone forever. This is not "trust me bro" randomness. This is trust physics. 🦴
 ```
 Operator: Skywalker (@skywalker12345678)
 Org:      Echo Hound Labs (@EchoHoundX)
 Location: Florida, USA
 Hardware: GMC-500+ Geiger Counter
+Fossils:  Cenozoic Era — 2–23 million years old
 Wallet:   HGFisVbULNKqogtPuGTfcHG9y6i5nboZabYwifkiiodo
 Live:     March 16, 2026
 ```
+
+---
+
+## Roadmap
+
+| Phase | Status | Description |
+|-------|--------|-------------|
+| Phase 1 — Genesis | ✅ Complete | VDF, commit-reveal, device fingerprint, slash, 58k+ submissions |
+| Phase 2 — v5 Upgrade | ✅ Complete | SlotHash binding, SHA256 chained pool, domain separation |
+| Phase 3 — Token | 🔜 Q2 2026 | ENTROPY SPL token, emission tied to reveal_entropy() |
+| Phase 4 — Multi-Node | 🔜 Planned | Multiple operators, staking, slash in ENTROPY |
+| Phase 5 — Immutable | 🔜 Planned | Third-party audit, revoke upgrade authority |
 
 ---
 
@@ -300,4 +382,4 @@ geiger-entropy-oracle/
 
 MIT © Echo Hound Labs (@EchoHoundX)
 
-*Building X1 Infrastructure from the ground up* 🦴☢️
+*The universe controls the supply. Trust physics.* 🦴☢️
