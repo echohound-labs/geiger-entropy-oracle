@@ -138,13 +138,13 @@ def get_vdf_iterations(cpm: int) -> int:
     Ensures VDF completes before next decay event arrives.
     """
     if cpm < 20:
-        return 100000  # 0.34s — background radiation
+        return 50000   # 0.17s — background radiation (tuned down from 100k)
     elif cpm < 50:
-        return 50000   # 0.17s — mild source
+        return 30000   # 0.10s — mild source
     elif cpm < 100:
         return 20000   # 0.08s — hot source
     else:
-        return 10000   # 0.04s — very hot source
+        return 15000   # 0.05s — very hot source (bumped from 10k for security)
 
 def compute_vdf(seed: bytes, cpm: int) -> tuple:
     """Compute VDF proof from entropy seed.
@@ -441,6 +441,10 @@ def onchain_submitter(cfg: dict, entropy_queue: queue.Queue, logger: logging.Log
                 if reveal_result.returncode == 0:
                     logger.info(f"Revealed | seq={sequence} CPM={cpm} VDF={vdf_iters}iters")
                     sequence += 1
+                    # Cycle sleep — reduces TX cost while maintaining fresh entropy
+                    cycle_sleep = cfg.get("tuning", {}).get("cycle_sleep_seconds", 15)
+                    logger.info(f"Cycle complete — sleeping {cycle_sleep}s before next commit")
+                    time.sleep(cycle_sleep)
                 else:
                     err = reveal_result.stderr.strip()
                     logger.warning(f"Reveal failed: {err}")
