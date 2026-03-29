@@ -153,7 +153,7 @@ Layer 1 — Predict quantum radioactive decay     (physically impossible)
 Layer 2 — Predict VDF output before completion  (computationally impossible)
 Layer 3 — Predict future X1 slot hash          (consensus impossible)
 Layer 4 — Reverse SHA256 chained pool          (cryptographically impossible)
-Layer 5 — Accept 0.1 SOL slash for withholding (economically irrational)
+Layer 5 — Accept 20 XNT slash for withholding (economically irrational)
 ```
 
 No other oracle on any SVM chain requires an attacker to defeat five independent layers from five different domains simultaneously.
