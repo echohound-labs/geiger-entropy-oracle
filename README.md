@@ -48,8 +48,6 @@ This is not "trust me bro" randomness. This is trust physics. ☢️
 
 ---
 
----
-
 ## Five Independent Security Layers
 
 The Geiger Entropy Oracle employs five independent security layers. An attacker must simultaneously defeat all five — each from a fundamentally different domain of physics, cryptography, blockchain consensus, and game theory.
