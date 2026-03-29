@@ -2,7 +2,7 @@
 # Geiger Entropy Oracle — Mainnet Startup Script
 # Echo Hound Labs ☢️
 
-echo "☢️  Starting Geiger Entropy Oracle v3..."
+echo "☢️  Starting Geiger Entropy Oracle v5..."
 
 # Check Geiger counter is connected
 if [ ! -e /dev/ttyUSB0 ]; then
