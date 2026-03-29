@@ -3,7 +3,9 @@ const { Connection, Keypair, PublicKey } = require("@solana/web3.js");
 const fs = require("fs");
 
 async function main() {
-  const keypairPath = process.env.HOME + "/.config/solana/id.json";
+  const keypairPath = (process.env.NETWORK || "mainnet") === "mainnet"
+    ? process.env.HOME + "/.config/solana/mainnet-deployer.json"
+    : process.env.HOME + "/.config/solana/id.json";
   const wallet = Keypair.fromSecretKey(
     new Uint8Array(JSON.parse(fs.readFileSync(keypairPath)))
   );

@@ -1,3 +1,15 @@
+#!/usr/bin/env python3
+"""
+Geiger Stream — Diagnostic Tool
+================================
+Simple standalone script to verify your GMC-500 is detecting decay events.
+Use this to test your hardware BEFORE running the full daemon.
+
+Usage:
+    python3 geiger_stream.py
+
+Does NOT submit anything on-chain. Safe to run anytime.
+"""
 import serial
 import time
 import hashlib

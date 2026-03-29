@@ -5,7 +5,9 @@ const path = require("path");
 
 async function main() {
   // Load wallet
-  const keypairPath = path.join(process.env.HOME, ".config/solana/id.json");
+  const keypairPath = (process.env.NETWORK || "mainnet") === "mainnet"
+    ? process.env.HOME + "/.config/solana/mainnet-deployer.json"
+    : process.env.HOME + "/.config/solana/id.json";
   const keypairData = JSON.parse(fs.readFileSync(keypairPath, "utf8"));
   const wallet = Keypair.fromSecretKey(new Uint8Array(keypairData));
   console.log("Wallet:", wallet.publicKey.toBase58());

@@ -7,3 +7,5 @@ wallet.json
 .geiger_device_fingerprint
 .pending_commit.json
 *.json.bak
+entropy-daemon/geiger_entropy.csv
+entropy-daemon/tests/sample.csv

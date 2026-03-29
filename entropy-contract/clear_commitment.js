@@ -3,13 +3,28 @@ const { Connection, Keypair, PublicKey } = require("@solana/web3.js");
 const fs = require("fs");
 
 async function main() {
-  const keypairPath = process.env.HOME + "/.config/solana/id.json";
+  // Support mainnet and testnet via NETWORK env var
+  const network = process.env.NETWORK || "mainnet";
+  const isMainnet = network === "mainnet";
+  const keypairPath = isMainnet
+    ? process.env.HOME + "/.config/solana/mainnet-deployer.json"
+    : process.env.HOME + "/.config/solana/id.json";
   const wallet = Keypair.fromSecretKey(
     new Uint8Array(JSON.parse(fs.readFileSync(keypairPath)))
   );
-  const connection = new Connection("https://rpc.testnet.x1.xyz", "confirmed");
-  const idl = JSON.parse(fs.readFileSync("target/idl/geiger_entropy.json"));
-  const programId = new PublicKey("2dQf9uaCzXewrDNLttmtzQmc3SmqfAHz3qahKQjtGQyY");
+  const rpc = isMainnet
+    ? "https://rpc.mainnet.x1.xyz"
+    : "https://rpc.testnet.x1.xyz";
+  const programIdStr = isMainnet
+    ? "BxUNg2yo5371BQMZPkfcxdCptFRDHkhvEXNM1QNPBRYU"
+    : "2dQf9uaCzXewrDNLttmtzQmc3SmqfAHz3qahKQjtGQyY";
+  const idlPath = isMainnet
+    ? "../entropy-daemon/idl/mainnet-commit-reveal/geiger_entropy.json"
+    : "target/idl/geiger_entropy.json";
+  const connection = new Connection(rpc, "confirmed");
+  const idl = JSON.parse(fs.readFileSync(idlPath));
+  const programId = new PublicKey(programIdStr);
+  console.log(`Network: ${network.toUpperCase()} | Program: ${programIdStr}`);
   const provider = new anchor.AnchorProvider(connection, new anchor.Wallet(wallet), {commitment: "confirmed"});
   anchor.setProvider(provider);
   const program = new anchor.Program(idl, provider);
