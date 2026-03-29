@@ -34,12 +34,18 @@ Blockchains are deterministic computers. Every node must produce identical outpu
 
 ## The Solution: Trust the Universe ☢️
 
-Radioactive decay is governed by quantum mechanics. It is fundamentally unpredictable — not just computationally hard, but **physically impossible to predict**. No amount of compute power can tell you when the next atom will decay.
+Radioactive decay is governed by quantum mechanics. It is fundamentally unpredictable — not just computationally hard, but **physically impossible to predict**. No amount of compute power can tell you when the next atom will decay. Not now. Not ever.
 
-Entropy is derived from the time between decay events (Δt), which follows a Poisson process and is fundamentally unpredictable. The Geiger Entropy Oracle captures this physical randomness using a GMC-500 Geiger counter beside Cenozoic fossils (2–23 million years old), processes it through five independent security layers, and posts it permanently on X1 — where any smart contract can request a provably fair random number.
+The Geiger Entropy Oracle captures this physical randomness using a GMC-500 Geiger counter placed beside Cenozoic fossils — 2 to 23 million years old. The inter-event timing (Δt) between decay events follows a true Poisson process, the same quantum randomness that has governed matter since the Big Bang.
 
-> "The chain of proof becomes: Physical decay (uncontrollable) → seed committed → VDF locks it in time → verifiable output. No one — including the operator — could have manipulated the result once the decay event was recorded."
+But physical entropy alone is not enough. A dishonest operator could still cherry-pick favorable readings. That's why every decay event is immediately locked by a Wesolowski VDF, blind-committed on-chain, bound to an X1 SlotHash outside the operator's control, and mixed into a domain-separated SHA256 chained pool. Withholding is made economically irrational by a 20 XNT slash mechanism.
+
+The result: an entropy source that no single party — not even the operator — can predict, manipulate, or selectively withhold.
+
+> "The chain of proof becomes: Physical decay (uncontrollable) → seed committed → VDF locks it in time → SlotHash binds it to consensus → verifiable output. No one — including the operator — could have manipulated the result."
 > — Theo, X1 Community Architect
+
+This is not "trust me bro" randomness. This is trust physics. ☢️
 
 ---
 
@@ -78,7 +84,7 @@ SHA256 is the same cryptographic primitive securing Bitcoin, Solana PDAs, and X1
 > "Even if one input is weak, it is cryptographically mixed into a non-linear pool." — Theo, X1 Community Architect
 
 ### Layer 5 — Economic Slash Mechanism
-If the operator commits entropy but fails to reveal within 128 slots, anyone can call slash_missed_reveal() and claim 0.1 SOL from the operator. Selective withholding — choosing not to reveal an unfavorable seed — is economically irrational. The blind commit-reveal scheme ensures the operator cannot see the final output before being locked in.
+If the operator commits entropy but fails to reveal within 128 slots, anyone can call slash_missed_reveal() and claim 20 XNT from the operator. Selective withholding — choosing not to reveal an unfavorable seed — is economically irrational. The bounty goes directly to the reporter — creating a self-policing incentive where anyone watching the chain is rewarded for catching lazy or malicious operators. The blind commit-reveal scheme ensures the operator cannot see the final output before being locked in.
 
 ---
 
