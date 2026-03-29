@@ -5,3 +5,5 @@ logs/
 __pycache__/
 wallet.json
 .geiger_device_fingerprint
+.pending_commit.json
+*.json.bak

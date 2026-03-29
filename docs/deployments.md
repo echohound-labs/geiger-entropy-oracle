@@ -1,4 +1,4 @@
-# ☢️ Geiger Entropy Oracle — Deployment Reference
+# ☢️ Geiger Entropy Oracle — Deployment Reference v5
 
 ## Network Addresses
 
@@ -12,6 +12,8 @@ IDL Account:   vriwJsd8QLAzCF3cpv8uavBUirBMAMgyjZT2aRzzoV8
 Operator:      HGFisVbULNKqogtPuGTfcHG9y6i5nboZabYwifkiiodo
 RPC:           https://rpc.mainnet.x1.xyz
 Explorer:      https://explorer.mainnet.x1.xyz
+Version:       v5 — SlotHash Binding + SHA256 Chained Pool + Domain Separation
+Slash Amount:  20 XNT
 Status:        🟢 LIVE
 ```
 
@@ -33,38 +35,48 @@ Status:        🟡 TESTING
 
 | Branch | Network | Description | Status |
 |--------|---------|-------------|--------|
-| `main` | Mainnet | Fast VDF + direct submit | 🟢 Production |
-| `testnet-vdf-verification` | Testnet | Full secure stack — commit-reveal + device fingerprint + slash | 🟡 Testing |
-| `mainnet-commit-reveal` | Mainnet | Future upgrade — commit-reveal on mainnet | 🔵 Pending |
-| `chain-spammer` | Mainnet | Ultra fast, no VDF — stress testing X1 | ⚪ Archived |
+| `main` | Mainnet | v5 PRODUCTION — SlotHash binding + SHA256 chained pool + 20 XNT slash + 15s cycle | 🟢 Production |
+| `mainnet-commit-reveal` | Mainnet | v4 legacy — commit-reveal + VDF + device fingerprint | 🔵 Fallback |
+| `testnet-vdf-verification` | Testnet | Testing sandbox — same as main pointing to testnet | 🟡 Testing |
+| `chain-spammer` | Mainnet | Ultra fast, no VDF — stress testing X1 | ⚪ Stress Test |
+
+---
+
+## Version History
+
+| Version | Branch | Date | Changes |
+|---------|--------|------|---------|
+| v5 | `main` | March 29, 2026 | SlotHash binding, SHA256 chained pool, GEIGER_POOL_V1 domain separator, 20 XNT slash, 15s cycle sleep, auto-reveal recovery |
+| v4 | `mainnet-commit-reveal` | March 16, 2026 | Commit-reveal, VDF, device fingerprint, slash mechanism |
+| v3 | `main` (old) | March 2026 | Fast VDF direct submit |
 
 ---
 
 ## IDL File Locations
 ```
 entropy-daemon/idl/
-├── mainnet/               ← main branch IDL
+├── mainnet-commit-reveal/ ← PRODUCTION IDL (main branch uses this)
 │   └── geiger_entropy.json
-├── testnet/               ← testnet-vdf-verification IDL
+├── mainnet/               ← legacy main branch IDL
 │   └── geiger_entropy.json
-└── mainnet-commit-reveal/ ← future mainnet upgrade IDL
+└── testnet/               ← testnet-vdf-verification IDL
     └── geiger_entropy.json
 ```
 
 ### IDL Update Rule
-After every `anchor build` copy IDL to correct folder:
+After every `anchor build` copy IDL to correct folder and fix address:
 ```bash
-# Mainnet build (on main branch):
-cp entropy-contract/target/idl/geiger_entropy.json \
-   entropy-daemon/idl/mainnet/geiger_entropy.json
-
-# Testnet build (on testnet-vdf-verification branch):
-cp entropy-contract/target/idl/geiger_entropy.json \
-   entropy-daemon/idl/testnet/geiger_entropy.json
-
-# Mainnet-commit-reveal build:
+# Main branch (production):
 cp entropy-contract/target/idl/geiger_entropy.json \
    entropy-daemon/idl/mainnet-commit-reveal/geiger_entropy.json
+
+# Fix address to mainnet (if built on testnet):
+sed -i 's/"address": "2dQf9uaCzXewrDNLttmtzQmc3SmqfAHz3qahKQjtGQyY"/"address": "BxUNg2yo5371BQMZPkfcxdCptFRDHkhvEXNM1QNPBRYU"/' \
+   entropy-daemon/idl/mainnet-commit-reveal/geiger_entropy.json
+
+# Testnet branch:
+cp entropy-contract/target/idl/geiger_entropy.json \
+   entropy-daemon/idl/testnet/geiger_entropy.json
 ```
 
 ---
@@ -78,46 +90,101 @@ Mainnet wallet:  ~/.config/solana/mainnet-deployer.json
                  HGFisVbULNKqogtPuGTfcHG9y6i5nboZabYwifkiiodo
 ```
 
+> ⚠️ **Critical:** All mainnet scripts (commit_entropy.js, reveal_entropy.js, recover_commitment.js) must use `mainnet-deployer.json`. Using `id.json` for mainnet will result in wrong PDA derivation and stuck commitments.
+
 ---
 
 ## Start Commands
 
-### Mainnet (main branch)
+### Mainnet v5 PRODUCTION (main branch)
 ```bash
-git checkout main
-cd entropy-daemon
+pkill -f daemon.py
+sleep 2
+cd ~/geiger-entropy-oracle/entropy-daemon
 CONFIG_PATH=./config-mainnet.toml \
 SUBMIT_SCRIPT=./submit_entropy_mainnet.js \
 python3 daemon.py > logs/mainnet-daemon.log 2>&1 &
+sleep 5
+curl http://localhost:8746/health
 ```
 
 ### Testnet (testnet-vdf-verification branch)
 ```bash
+pkill -f daemon.py
+sleep 2
+cd ~/geiger-entropy-oracle
 git checkout testnet-vdf-verification
 cd entropy-daemon
 CONFIG_PATH=./config.toml \
 SUBMIT_SCRIPT=./submit_entropy.js \
 python3 daemon.py > logs/testnet-daemon.log 2>&1 &
+sleep 5
+curl http://localhost:8745/health
 ```
 
-### Chain Spammer (chain-spammer branch)
+### v4 Fallback (mainnet-commit-reveal branch)
 ```bash
+pkill -f daemon.py
+sleep 2
+cd ~/geiger-entropy-oracle
+git checkout mainnet-commit-reveal
+cd entropy-daemon
+CONFIG_PATH=./config-mainnet.toml \
+SUBMIT_SCRIPT=./submit_entropy_mainnet.js \
+python3 daemon.py > logs/mainnet-daemon.log 2>&1 &
+sleep 5
+curl http://localhost:8746/health
+```
+
+### Chain Spammer (stress testing only)
+```bash
+pkill -f daemon.py
+sleep 2
+cd ~/geiger-entropy-oracle
 git checkout chain-spammer
 cd entropy-daemon
 CONFIG_PATH=./config-mainnet.toml \
 SUBMIT_SCRIPT=./submit_entropy_mainnet.js \
 python3 daemon.py > logs/mainnet-daemon.log 2>&1 &
+sleep 5
+curl http://localhost:8746/health
 ```
+
+> ⚠️ **CRITICAL:** Always `pkill -f daemon.py` before switching branches. Scripts disappear on branch switch and will break the running daemon immediately.
 
 ---
 
 ## Health Checks
 ```bash
-# Mainnet
+# Mainnet (port 8746)
 curl http://localhost:8746/health
+curl http://localhost:8746/entropy
 
-# Testnet
+# Testnet (port 8745)
 curl http://localhost:8745/health
+curl http://localhost:8745/entropy
+```
+
+---
+
+## Recovery Commands
+
+### Check for stuck commitments
+```bash
+cd ~/geiger-entropy-oracle/entropy-daemon
+node mainnet/recover_commitment.js
+```
+
+### Manual slash to clear stuck commitment
+```bash
+cd ~/geiger-entropy-oracle/entropy-daemon
+node mainnet/recover_commitment.js
+# If status is STALE it will auto-slash and clear
+```
+
+### Watch live logs
+```bash
+tail -f ~/geiger-entropy-oracle/entropy-daemon/logs/mainnet-daemon.log
 ```
 
 ---
@@ -139,5 +206,26 @@ rm entropy-daemon/.geiger_device_fingerprint
 
 ---
 
-*Last updated: March 18, 2026*
+## Program Upgrade Authority
+```
+Upgrade Authority: HGFisVbULNKqogtPuGTfcHG9y6i5nboZabYwifkiiodo
+                   (mainnet-deployer.json)
+Status:            Retained — active development
+Planned:           Revoke after Phase 5 audit
+```
+
+To upgrade program:
+```bash
+cd entropy-contract
+anchor build
+anchor upgrade \
+  target/deploy/geiger_entropy.so \
+  --program-id BxUNg2yo5371BQMZPkfcxdCptFRDHkhvEXNM1QNPBRYU \
+  --provider.wallet ~/.config/solana/id.json \
+  --provider.cluster https://rpc.mainnet.x1.xyz
+```
+
+---
+
+*Last updated: March 29, 2026*
 *Echo Hound Labs (@EchoHoundX) ☢️🦴*
