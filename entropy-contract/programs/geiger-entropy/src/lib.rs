@@ -1,7 +1,6 @@
 //! Geiger Entropy Oracle — X1 Anchor Program
 use anchor_lang::prelude::*;
 use sha2::{Sha256, Digest};
-use blake3;
 
 declare_id!("BxUNg2yo5371BQMZPkfcxdCptFRDHkhvEXNM1QNPBRYU");
 
