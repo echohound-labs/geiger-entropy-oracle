@@ -64,7 +64,9 @@ Off-chain components:
 
 On-chain components:
 ├── Anchor program (X1 mainnet)
+├── Blind commit-reveal scheme (3 slot delay)
 ├── Entropy pool (rolling 32 seeds — SHA256 chained)
+├── Slash mechanism (20 XNT for missed reveals)
 ├── Node registry
 ├── Randomness requests
 └── Fulfillment results
