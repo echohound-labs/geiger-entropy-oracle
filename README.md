@@ -333,11 +333,17 @@ curl http://localhost:8746/entropy
 
 ---
 
-## The Genesis Node
+## The Genesis Node ☢️
 
-Running beside fossils from the Cenozoic Era — Miocene to Pleistocene epoch, roughly 2–23 million years ago. The same quantum randomness that has governed matter since the Big Bang now secures X1 smart contracts.
+The world's first physical entropy oracle — running on quantum mechanical radioactive decay. The oracle captures background radiation that exists everywhere on Earth, produced by cosmic rays, soil, building materials, and the natural radioactive decay of matter itself.
 
-Each decay event is quantum mechanical — impossible to predict, permanently recorded on X1, cryptographically verified, and auditable by anyone forever. This is not "trust me bro" randomness. This is trust physics. 🦴
+The Genesis Node runs beside fossils from the Cenozoic Era — Miocene to Pleistocene epoch, roughly 2–23 million years old — which enhance the radiation signal. But the oracle requires no special source. Background radiation alone is sufficient. Any GMC-500 anywhere on Earth can run a node.
+
+The same quantum randomness that has governed matter since the Big Bang now makes X1 dApps trustless. Every decay event is physically impossible to predict, permanently recorded on X1, cryptographically verified, and auditable by anyone forever.
+
+The fossils don't know they're powering a blockchain. But they are. 🦴
+
+This is not "trust me bro" randomness. This is trust physics. ☢️
 ```
 Operator: Skywalker (@skywalker12345678)
 Org:      Echo Hound Labs (@EchoHoundX)
@@ -346,6 +352,7 @@ Hardware: GMC-500+ Geiger Counter
 Fossils:  Cenozoic Era — 2–23 million years old
 Wallet:   HGFisVbULNKqogtPuGTfcHG9y6i5nboZabYwifkiiodo
 Live:     March 16, 2026
+Sequences: 58,000+ on-chain
 ```
 
 ---
