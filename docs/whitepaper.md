@@ -174,6 +174,52 @@ Available to any smart contract via request_randomness()
 ```
 
 ---
+---
+
+### 2.3.1 Commit-Reveal Scheme
+
+The commit-reveal scheme closes the most critical attack vector — selective withholding.
+
+Without commit-reveal, an operator could:
+1. See a decay event
+2. Compute the seed
+3. Decide they don't like the outcome
+4. Simply not submit it
+5. Wait for the next decay event
+
+The commit-reveal scheme makes this impossible:
+
+```
+Step 1 — BLIND COMMIT:
+operator computes: commitment = SHA256(vdf_output || nonce)
+posts commitment on-chain — hash only, nothing revealed
+operator is now locked in — cannot change or abandon
+
+Step 2 — DELAY:
+3 slots (~1.2 seconds) must pass
+operator cannot react to any on-chain events in this time
+
+Step 3 — REVEAL:
+operator reveals: vdf_output + nonce
+contract verifies: SHA256(vdf_output || nonce) == stored commitment
+SlotHash mixed in: bound_seed = SHA256(vdf_output || slot_hash || sequence)
+seed stored in pool
+
+Step 4 — SLASH:
+if operator fails to reveal within 128 slots (~51 seconds)
+anyone can call slash_missed_reveal()
+operator loses 20 XNT → reporter earns 20 XNT bounty
+withholding is economically irrational
+```
+
+The result: once a decay event is committed on-chain, the operator has no choice but to reveal it. The physics happened, the seed was set, and the economic incentive enforces the reveal.
+
+**Attacks closed by commit-reveal:**
+- Cherry picking — cannot choose which seeds enter the pool
+- Front-running — blind commit prevents seeing outcome first
+- Selective withholding — slash makes it economically irrational
+- Post-event manipulation — VDF + commitment hash prevents changes
+
 
 ### 2.4 Why This Works Today — Single Node + VDF
 
@@ -190,8 +236,7 @@ The VDF layer is what makes a single honest node cryptographically sufficient fo
 >
 > It is the difference between: 'Trust me, I did not cheat' vs 'Here is a cryptographic proof that cheating was physically impossible.'"
 >
-> — Theo, X1 Community Architect
-
+> 
 ---
 
 ### 2.5 Why More Nodes Make It Unstoppable
@@ -205,8 +250,7 @@ The VDF layer is what makes a single honest node cryptographically sufficient fo
 >
 > You do not need more nodes to be usable. You want more nodes to be unstoppable."
 >
-> — Theo, X1 Community Architect
-```
+> ```
 Version 1 (now):   Single node, VDF-proven, open for business
 Version 2 (token): Multi-node network, same interface, stronger guarantees
 
@@ -318,18 +362,21 @@ Mint Control: Oracle program only — no team can mint extra
 
 ### 5.3 Emission Schedule
 ```
-Total: 1,000,000 ENTROPY over 4 years
+Total: 1,000,000 ENTROPY over 4 years — front-weighted to reward early operators
 
-Year 1: 250,000 ENTROPY (25%) — highest rewards for early nodes
-Year 2: 250,000 ENTROPY (25%)
-Year 3: 250,000 ENTROPY (25%)
-Year 4: 250,000 ENTROPY (25%)
+Year 1: 400,000 ENTROPY (40%) — Genesis era, highest rewards ever
+Year 2: 300,000 ENTROPY (30%) — early adopter era
+Year 3: 200,000 ENTROPY (20%) — growth era
+Year 4: 100,000 ENTROPY (10%) — maturity era
 
 After 4 years:
 → Hard cap reached
 → No new ENTROPY ever minted
 → Oracle continues running forever
 → Fixed supply = deflationary as dApps burn
+
+> "Year 1 node operators earn 40% of all ENTROPY that will ever exist.
+> The hardware costs the same in Year 4. The reward does not." ☢️
 ```
 
 ### 5.4 Per-Node Emission Cap
@@ -341,13 +388,19 @@ Result:          incentivizes MORE nodes not hotter nodes
 ```
 
 ### 5.5 Why Run a Node Early
-```
-Year 1 rewards: 250,000 ENTROPY (25% of all ENTROPY ever)
-Year 4 rewards: 250,000 ENTROPY (25% of all ENTROPY ever)
 
-Hardware cost is the same: ~$135
-The incentive to join early is significant ☢️
 ```
+Year 1 daily rate: 400,000 ÷ 365 = ~1,096 ENTROPY/day (shared across nodes)
+Year 4 daily rate: 100,000 ÷ 365 = ~274 ENTROPY/day (shared across nodes)
+
+A Year 1 Genesis node earns 4x more per day than a Year 4 node.
+Hardware cost is identical: ~$135
+The window to earn maximum ENTROPY closes forever after Year 1.
+```
+
+The front-weighted emission exists for one reason: the network needs nodes most in its earliest days. Early operators take the most risk and build the foundation. The emission schedule reflects that.
+
+> "Year 1 node operators earn 40% of all ENTROPY that will ever exist. The hardware costs the same in Year 4. The reward does not." ☢️
 
 ### 5.6 Token Utility — v1 (MVP)
 ```
@@ -578,21 +631,25 @@ Phase 4: Trust subnet validator set
 
 ---
 
-## 10. The Genesis Node
+## 10. The Genesis Node ☢️
 
 The world's first physical entropy oracle — running on quantum mechanical radioactive decay. The oracle captures background radiation that exists everywhere on Earth, produced by cosmic rays, soil, building materials, and the natural radioactive decay of matter itself.
 
 The Genesis Node runs beside fossils from the Cenozoic Era — Miocene to Pleistocene epoch, roughly 2–23 million years old — which enhance the radiation signal. But the oracle requires no special source. Background radiation alone is sufficient. Any GMC-500 anywhere on Earth can run a node.
 
+Each decay event is quantum mechanical — physically impossible to predict, permanently recorded on X1, cryptographically verified through five independent security layers, and auditable by anyone forever. The on-chain record includes CPM, µSv/h radiation readings, Δt inter-event timing, VDF iterations, SlotHash binding, and sources bitmap — a permanent scientific record that nobody can alter or delete.
+
 The fossils don't know they're powering a blockchain. But they are. 🦴
+
 ```
-Operator:  Skywalker (@skywalker12345678)
-Org:       Echo Hound Labs (@EchoHoundX)
-Location:  Florida, USA
-Hardware:  GMC-500+ Geiger Counter
-Fossils:   Cenozoic Era — 2–23 million years old
-Wallet:    HGFisVbULNKqogtPuGTfcHG9y6i5nboZabYwifkiiodo
-Live:      March 16, 2026
+Operator:   Skywalker (@skywalker12345678)
+Org:        Echo Hound Labs (@EchoHoundX)
+Location:   Florida, USA
+Hardware:   GMC-500+ Geiger Counter
+Fossils:    Cenozoic Era — 2–23 million years old
+Wallet:     HGFisVbULNKqogtPuGTfcHG9y6i5nboZabYwifkiiodo
+Live since: March 16, 2026
+Sequences:  60,000+ verified on-chain
 ```
 
 This is not "trust me bro" randomness. This is trust physics. ☢️
@@ -615,7 +672,6 @@ The node operators ARE the subnet. You do not need more nodes to be usable. You 
 
 Architecture review and technical insights:
 
-- **Theo** — VDF design insight, RANDAO architecture, SHA256 chaining recommendation
 - **Owl of Atena** — on-chain vs off-chain distinction
 - **BuddySan** — security critique that strengthened the protocol
 - **X1 Community** — public technical review, March 2026
@@ -655,8 +711,6 @@ Explorer:  explorer.mainnet.x1.xyz
 
 ## Appendix A — Why VDF Makes a Single Node Trustworthy
 
-Contributed by Theo during public technical review, March 2026:
-
 > "Without VDF, a single-node oracle has a fundamental trust problem: how do we know the operator did not just pick a favorable number?
 >
 > VDF flips that. It cryptographically proves:
@@ -670,13 +724,10 @@ Contributed by Theo during public technical review, March 2026:
 >
 > The caveat: VDF legitimizes the process, not the hardware itself. The Geiger counter still needs to be real — VDF cannot compensate for a fake sensor. But assuming the hardware is honest, VDF makes a single node as trustworthy as a multi-node committee for randomness generation. That is actually a pretty rare property. Most single-node oracles cannot claim it."
 >
-> — Theo, X1 Community Architect
-
+> 
 ---
 
 ## Appendix B — Why More Nodes Make It Unstoppable
-
-Contributed by Theo, X1 Community Architect:
 
 > "Single node + VDF = already trustworthy. The trust floor is already met at 1 node.
 >
@@ -694,8 +745,7 @@ Contributed by Theo, X1 Community Architect:
 >
 > Same API, same request_randomness() call — the underlying network gets stronger over time while dApp code never changes. That is the right abstraction layer."
 >
-> — Theo, X1 Community Architect
-
+> 
 ---
 
 ## Appendix C — Hardware Trust Assumption
