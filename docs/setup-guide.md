@@ -1,6 +1,7 @@
-# 🔧 Setup Guide — Geiger Entropy Oracle Node
-
+# 🔧 Setup Guide — Geiger Entropy Oracle Node v5
 Complete guide to running a Geiger Entropy Oracle node on X1 Mainnet.
+
+> ⚠️ **Important:** Node operators must maintain a minimum balance of **25 XNT** in their wallet at all times. The slash mechanism deducts 20 XNT for missed reveals. Keep your wallet funded.
 
 ---
 
@@ -10,7 +11,9 @@ Complete guide to running a Geiger Entropy Oracle node on X1 Mainnet.
 |------|-------|------|------|
 | Geiger Counter | GMC-500+ | ~$100 | GQ Electronics |
 | Computer | Any Linux/WSL2/RPi | varies | — |
-| Radioactive source | Natural fossils or smoke detector | $0-5 | — |
+| Radioactive source | Background radiation is sufficient | $0 | — |
+
+> **Note:** No special radioactive source is required. Background radiation exists everywhere on Earth — produced by cosmic rays, soil, building materials, and natural radioactive decay. The Genesis Node uses Cenozoic fossils to enhance the signal, but any GMC-500 anywhere on Earth can run a node.
 
 ---
 
@@ -78,7 +81,7 @@ winget install usbipd
 ```
 
 ### Attach Geiger Counter to WSL2
-Run in **Windows PowerShell as Administrator** every time you plug in:
+Run in Windows PowerShell as Administrator every time you plug in:
 ```powershell
 # List USB devices
 usbipd list
@@ -95,7 +98,7 @@ dmesg | grep tty
 ls /dev/ttyUSB0
 ```
 
-**Note:** Repeat usbipd attach after every reboot or replug.
+> **Note:** Repeat `usbipd attach` after every reboot or replug.
 
 ---
 
@@ -115,7 +118,7 @@ sudo usermod -a -G dialout $USER
 
 ## Wallet Setup
 
-### Create a new Solana wallet
+### Create a new wallet
 ```bash
 solana-keygen new --outfile ~/.config/solana/id.json
 # Save your seed phrase securely!
@@ -125,14 +128,15 @@ solana address -k ~/.config/solana/id.json
 ```
 
 ### Fund your wallet
-You need XNT for transaction fees:
-- X1 Faucet: https://faucet.x1.xyz
-- Minimum ~1 XNT recommended
-- Each submission costs ~0.000005 XNT
-- 1 XNT = ~200,000 submissions
+You need XNT for transaction fees and slash protection:
 
-### Check balance
+- **Minimum recommended: 25 XNT**
+- Each commit-reveal cycle costs ~0.00005 XNT
+- Slash mechanism deducts **20 XNT** for missed reveals
+- Keep at least 25 XNT at all times as a safety buffer
+- X1 Faucet: https://faucet.x1.xyz
 ```bash
+# Check balance
 solana balance --url https://rpc.mainnet.x1.xyz
 ```
 
@@ -160,10 +164,12 @@ pip3 install -r requirements.txt --break-system-packages
 cd ..
 ```
 
----
+### Create logs directory
+```bash
+mkdir -p ~/geiger-entropy-oracle/entropy-daemon/logs
+```
 
-## Verify Geiger Counter
-
+### Verify Geiger Counter
 Before configuring, verify your GMC-500 is working:
 ```bash
 # Check device is detected
@@ -181,10 +187,10 @@ print('GMC-500 OK!')
 ```
 
 Expected output:
-````
+```
 Response: b'GMC-500Re 2.50'
 GMC-500 OK!
-`````
+```
 
 If no response — check USB connection and usbipd attachment.
 
@@ -223,14 +229,27 @@ program_id = "BxUNg2yo5371BQMZPkfcxdCptFRDHkhvEXNM1QNPBRYU"
 oracle_state = "BygMTZ1oLBD9tDmssnt9LkNT7BEd2PCJBCzurwtMuTqm"
 entropy_pool = "GDECYXCXietabJs9Y1baKzD3t4VFBw4eZWPnvYenyi77"
 entropy_node = "YOUR_NODE_PDA_HERE"
+
+[tuning]
+cycle_sleep_seconds = 15
+vdf_iters_low_cpm = 50000
 ```
+
+> **Tuning:** `cycle_sleep_seconds` controls how long the daemon waits between commit-reveal cycles. 15 seconds is the recommended default — fresh enough for all dApp use cases while remaining cost efficient for operators.
 
 ---
 
-## Create logs directory
-```bash
-mkdir -p ~/geiger-entropy-oracle/entropy-daemon/logs
+## VDF Iterations
+
+The daemon dynamically adjusts VDF iterations based on CPM (counts per minute):
 ```
+CPM < 20  → 50,000 iterations (~0.17s) — background radiation
+CPM < 50  → 30,000 iterations (~0.10s) — mild source
+CPM < 100 → 20,000 iterations (~0.08s) — hot source
+CPM 100+  → 15,000 iterations (~0.05s) — very hot source
+```
+
+All iteration counts exceed one X1 slot (~400ms), ensuring the VDF time-lock is always cryptographically meaningful. The VDF ensures that after a decay event is captured, the operator cannot predict the final seed before it is committed on-chain.
 
 ---
 
@@ -245,7 +264,7 @@ Expected output:
 Network: MAINNET
 RPC: https://rpc.mainnet.x1.xyz
 Operator: YourWalletAddress...
-Balance: 10.5 XNT
+Balance: 25+ XNT
 Node PDA: YourNodePDA...
 Node registered!
   Transaction: txSignature...
@@ -260,7 +279,7 @@ Copy the Node PDA into your `config-mainnet.toml`.
 
 ## Device Fingerprinting
 
-On first run the daemon automatically registers your GMC-500 hardware fingerprint:
+On first run the daemon automatically registers your GMC-500 hardware fingerprint using the internal serial number, USB VID:PID, and firmware version:
 ```
 ✓ Device fingerprint registered: 83ff336d752b6b12...
   Model: GMC-500 | USB: /dev/ttyUSB0
@@ -280,6 +299,7 @@ Hardware verification failed — daemon refusing to start
 To reset (if you replace your Geiger counter):
 ```bash
 rm entropy-daemon/.geiger_device_fingerprint
+# Restart daemon — re-registers automatically
 ```
 
 ---
@@ -319,12 +339,57 @@ Expected:
 tail -f logs/mainnet-daemon.log
 ```
 
-Expected output:
+Expected output (v5 commit-reveal mode):
 ```
-✓ Device fingerprint verified: 83ff336d...
-☢️ DECAY EVENT | Δt=3.2s | CPM=20 | seed=abc123... | VDF=50000iters/0.162s
-✓ On-chain submission OK | CPM=20 | VDF=50000iters
+☢️  Geiger Entropy Oracle v3 — VRF+VDF starting up
+✓ Keypair loaded
+Verifying Geiger counter hardware fingerprint...
+✓ Device fingerprint verified: 83ff336d752b6b12...
+Connecting to Geiger counter on /dev/ttyUSB0 at 115200 baud...
+✓ Serial port /dev/ttyUSB0 opened
+✓ Clean state — starting at sequence 514
+☢️  DECAY EVENT | Δt=3.2s | CPM=20 | µSv/h=0.130 | seed=abc123... | VDF=50000iters/0.162s
+Committed | seq=514 CPM=20
+Revealed  | seq=514 CPM=20 VDF=50000iters
+Cycle complete — sleeping 15s before next commit
 ```
+
+---
+
+## What Gets Logged On-Chain Forever
+
+Every reveal is permanently recorded on X1:
+```
+☢️ Entropy revealed | seq=514 CPM=20 uSv/h=0.130 dt=3.200s
+VDF=50000iters seed=[104,88,184,213] slot_hash=[194,253,135,141]
+binding_slot=39512140 sources=0x07 verified✓
+```
+
+`sources=0x07` confirms all three entropy layers active:
+- `0x01` = Physical Geiger decay
+- `0x02` = Wesolowski VDF
+- `0x04` = X1 SlotHash binding
+
+This is a permanent scientific record. Every decay event timestamped to the nanosecond, with CPM and µSv/h radiation readings — immutable and publicly auditable forever.
+
+---
+
+## Slash Mechanism
+
+The oracle uses a **20 XNT slash** to ensure honest operation:
+
+- Operator commits entropy → blind hash locked on-chain
+- Operator must reveal within **128 slots (~51 seconds)**
+- If operator fails to reveal → anyone can call `slash_missed_reveal()`
+- Operator loses **20 XNT** → reporter earns **20 XNT** as bounty
+
+**Three layers of automatic recovery prevent accidental slashing:**
+
+1. **Commit timeout handler** — detects RPC timeout, waits 10s, runs recovery
+2. **Reveal retry handler** — 3 attempts with 10s delay for timeouts
+3. **Startup recovery** — auto-reveals stuck commitments using saved pending data
+
+> **Keep at least 25 XNT in your operator wallet at all times.**
 
 ---
 
@@ -332,7 +397,7 @@ Expected output:
 ```bash
 cat > ~/.config/systemd/user/geiger-entropy.service << 'SEOF'
 [Unit]
-Description=Geiger Entropy Oracle
+Description=Geiger Entropy Oracle v5
 After=network.target
 
 [Service]
@@ -369,6 +434,9 @@ curl http://localhost:8746/entropy
 # Check balance
 solana balance --url https://rpc.mainnet.x1.xyz
 
+# Watch live logs
+tail -f logs/mainnet-daemon.log
+
 # View on explorer
 # https://explorer.mainnet.x1.xyz/address/YOUR_WALLET
 ```
@@ -379,14 +447,19 @@ solana balance --url https://rpc.mainnet.x1.xyz
 
 Every decay event submission earns ENTROPY tokens (coming Q2 2026):
 ```
-Max Supply:  1,000,000 ENTROPY
+Max Supply:  1,000,000 ENTROPY — ever
 Emission:    4 years equal distribution
 Year 1-4:    250,000 ENTROPY each (25%)
-Mint:        Oracle program only
+Mint:        Oracle program only — no team can mint extra
 ```
 
-The more decay events your node captures, the more ENTROPY you earn.
-Higher CPM = more events = more ENTROPY.
+The more decay events your node captures, the more ENTROPY you earn. Higher CPM = more events = more ENTROPY.
+
+Token launch prerequisites — NOT MET YET:
+- Multi-node operators
+- Staking contract
+- Slash in ENTROPY
+- Statistical audit
 
 ---
 
@@ -409,19 +482,47 @@ fuser -k 8746/tcp
 **Insufficient balance:**
 ```bash
 solana balance --url https://rpc.mainnet.x1.xyz
-# Top up if below 1 XNT
+# Keep minimum 25 XNT — 20 XNT needed for slash protection
+```
+
+**Stuck commitment / UnrevealedCommitmentPending spam:**
+```bash
+pkill -f daemon.py
+sleep 2
+cd ~/geiger-entropy-oracle/entropy-daemon
+node mainnet/recover_commitment.js
+# Then restart daemon
+CONFIG_PATH=./config-mainnet.toml \
+SUBMIT_SCRIPT=./submit_entropy_mainnet.js \
+python3 daemon.py > logs/mainnet-daemon.log 2>&1 &
 ```
 
 **Submissions failing:**
 ```bash
 tail -f logs/mainnet-daemon.log
-# Look for "On-chain submission failed"
+# Look for "Commit failed" or "Reveal failed"
 ```
 
 **Permission denied on /dev/ttyUSB0:**
 ```bash
 sudo usermod -a -G dialout $USER
 # Log out and back in
+```
+
+**Device fingerprint mismatch:**
+```bash
+rm entropy-daemon/.geiger_device_fingerprint
+# Restart daemon — re-registers automatically
+```
+
+**RPC timeout loop:**
+```bash
+# Daemon has auto-recovery — wait 30s for it to self-heal
+# If still stuck after 60s, restart:
+pkill -f daemon.py
+sleep 2
+node mainnet/recover_commitment.js
+# Then restart daemon
 ```
 
 ---
@@ -431,8 +532,3 @@ sudo usermod -a -G dialout $USER
 - Mainnet: https://explorer.mainnet.x1.xyz
 - Program: https://explorer.mainnet.x1.xyz/address/BxUNg2yo5371BQMZPkfcxdCptFRDHkhvEXNM1QNPBRYU
 - Operator: https://explorer.mainnet.x1.xyz/address/HGFisVbULNKqogtPuGTfcHG9y6i5nboZabYwifkiiodo
-
----
-
-*Echo Hound Labs (@EchoHoundX) ☢️🦴*
-*Building X1 Infrastructure from the ground up*
