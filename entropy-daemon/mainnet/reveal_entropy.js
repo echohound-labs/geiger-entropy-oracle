@@ -75,6 +75,11 @@ async function main() {
     })
     .rpc();
 
+  // Clear pending commit file after successful reveal
+  const pendingPath = path.join(__dirname, "../.pending_commit.json");
+  if (require("fs").existsSync(pendingPath)) {
+    require("fs").unlinkSync(pendingPath);
+  }
   console.log(`✓ Revealed | CPM=${cpm} tx=${tx}`);
 }
 

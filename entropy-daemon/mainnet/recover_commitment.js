@@ -61,15 +61,30 @@ async function main() {
       console.log("SLASHED: cleared stuck commitment TX:", tx);
       console.log(JSON.stringify({status: "slashed", sequence: pc.sequence.toString()}));
     } else {
-      // Still within reveal window — report sequence
-      console.log("PENDING: commitment exists, within reveal window");
-      console.log(JSON.stringify({
-        status: "pending",
-        sequence: pc.sequence.toString(),
-        committedSlot: committedSlot,
-        currentSlot: slot,
-        slotsRemaining: deadline - slot
-      }));
+      // Still within reveal window — try to reveal using saved data
+      const pendingPath = path.join(__dirname, "../.pending_commit.json");
+      if (fs.existsSync(pendingPath)) {
+        const saved = JSON.parse(fs.readFileSync(pendingPath, "utf8"));
+        console.log(`PENDING: attempting auto-reveal for seq=${pc.sequence.toString()}`);
+        console.log(JSON.stringify({
+          status: "pending",
+          sequence: pc.sequence.toString(),
+          vdfOutputHex: saved.vdfOutputHex,
+          operatorNonceHex: saved.operatorNonceHex,
+          committedSlot: committedSlot,
+          currentSlot: slot,
+          slotsRemaining: deadline - slot
+        }));
+      } else {
+        console.log("PENDING: commitment exists but no saved data — cannot auto-reveal");
+        console.log(JSON.stringify({
+          status: "pending",
+          sequence: pc.sequence.toString(),
+          committedSlot: committedSlot,
+          currentSlot: slot,
+          slotsRemaining: deadline - slot
+        }));
+      }
     }
   } catch(e) {
     // No account = clean state

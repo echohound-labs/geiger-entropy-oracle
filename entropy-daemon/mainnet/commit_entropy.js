@@ -52,6 +52,16 @@ async function main() {
     })
     .rpc();
 
+  // Save pending commit data to disk for recovery
+  const pendingPath = path.join(__dirname, "../.pending_commit.json");
+  fs.writeFileSync(pendingPath, JSON.stringify({
+    vdfOutputHex,
+    operatorNonceHex,
+    sequence,
+    tx,
+    timestamp: Date.now()
+  }));
+
   console.log(`✓ Committed | seq=${sequence} tx=${tx}`);
 }
 

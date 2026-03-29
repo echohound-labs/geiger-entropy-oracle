@@ -383,7 +383,25 @@ def onchain_submitter(cfg: dict, entropy_queue: queue.Queue, logger: logging.Log
                         logger.info(f"✓ Cleared stuck commitment — starting at sequence {sequence}")
                     elif status["status"] == "pending":
                         sequence = int(status.get("sequence", 0))
-                        logger.info(f"✓ Resuming from sequence {sequence}")
+                        # Try to reveal using saved data
+                        saved_vdf = status.get("vdfOutputHex")
+                        saved_nonce = status.get("operatorNonceHex")
+                        if saved_vdf and saved_nonce:
+                            logger.info(f"✓ Pending commitment found — attempting auto-reveal for seq={sequence}")
+                            time.sleep(5)
+                            reveal_result = subprocess.run(
+                                ["node", str(reveal_script),
+                                 saved_vdf[:64], saved_nonce, "0" * 128,
+                                 "20", str(int(time.time())), "0", "0", "0"],
+                                capture_output=True, text=True, timeout=60
+                            )
+                            if reveal_result.returncode == 0:
+                                logger.info(f"✓ Auto-revealed stuck commitment seq={sequence}")
+                                sequence += 1
+                            else:
+                                logger.warning(f"Auto-reveal failed: {reveal_result.stderr.strip()[:100]}")
+                        else:
+                            logger.info(f"✓ Resuming from sequence {sequence} (no saved data for auto-reveal)")
                 else:
                     sequence = 0
                     logger.info("✓ Fresh start — sequence 0")
