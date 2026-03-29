@@ -53,7 +53,7 @@ This is not "trust me bro" randomness. This is trust physics. ☢️
 The Geiger Entropy Oracle employs five independent security layers. An attacker must simultaneously defeat all five — each from a fundamentally different domain of physics, cryptography, blockchain consensus, and game theory.
 
 ### Layer 1 — Physical Quantum Entropy
-Radioactive decay from Cenozoic fossils is quantum mechanical. It is not computationally hard to predict — it is **physically impossible to predict**. The inter-event timing (Δt) follows a true Poisson process governed by the same quantum randomness that has existed since the Big Bang. No computer, no algorithm, no adversary can predict when the next atom decays.
+Radioactive decay is quantum mechanical — not just from fossils, but from background radiation that exists everywhere on Earth. The Genesis Node runs beside Cenozoic fossils to enhance the signal, but any GMC-500 anywhere on Earth captures the same fundamental quantum process. The inter-event timing (Δt) follows a true Poisson process governed by the same quantum randomness that has existed since the Big Bang. It is not computationally hard to predict — it is **physically impossible to predict**. No computer, no algorithm, no adversary can predict when the next atom decays.
 
 ### Layer 2 — Wesolowski VDF Time Lock
 After capturing the decay event, a Verifiable Delay Function (VDF) is computed. This creates a cryptographic time lock — the final seed cannot be known until the VDF computation completes. Dynamic iterations ensure the VDF always takes longer than one X1 slot (~400ms), making post-capture manipulation impossible.
@@ -62,6 +62,11 @@ CPM < 20  → 50,000 iterations (~0.17s)
 CPM < 50  → 30,000 iterations (~0.10s)
 CPM < 100 → 20,000 iterations (~0.08s)
 CPM 100+  → 15,000 iterations (~0.05s)
+```
+
+```
+Signature alone:              "Trust me I did not cheat"
+VDF-secured Physical Entropy: "Here's a cryptographic proof cheating was impossible"
 ```
 
 ### Layer 3 — X1 SlotHash Binding ✨ NEW in v5
@@ -80,7 +85,6 @@ state = SHA256("GEIGER_POOL_V1" || state || seed)  × 32 seeds
 
 SHA256 is the same cryptographic primitive securing Bitcoin, Solana PDAs, and X1 transaction signing. The GEIGER_POOL_V1 domain separator prevents cross-protocol collisions and makes the design uniquely attributable to this protocol forever. Each new entropy contribution is irreversibly folded into the pool — no attacker can isolate, reverse, or cancel any individual seed's contribution.
 
-> "Even if one input is weak, it is cryptographically mixed into a non-linear pool." ☢️
 
 ### Layer 5 — Economic Slash Mechanism
 If the operator commits entropy but fails to reveal within 128 slots, anyone can call slash_missed_reveal() and claim 20 XNT from the operator. Selective withholding — choosing not to reveal an unfavorable seed — is economically irrational. The bounty goes directly to the reporter — creating a self-policing incentive where anyone watching the chain is rewarded for catching lazy or malicious operators. The blind commit-reveal scheme ensures the operator cannot see the final output before being locked in.
@@ -246,6 +250,12 @@ Token launch prerequisites — NOT MET YET:
 - Statistical audit
 
 > "The universe controls the supply. No team can mint extra ENTROPY. Ever." ☢️
+
+**How to earn ENTROPY:**
+1. Buy a GMC-500 Geiger counter (~$100)
+2. Run the entropy daemon
+3. Register your node on X1
+4. Earn ENTROPY automatically from every decay event
 
 ---
 
