@@ -38,13 +38,15 @@ Radioactive decay is governed by quantum mechanics. It is fundamentally unpredic
 
 The Geiger Entropy Oracle captures this physical randomness using a GMC-500 Geiger counter placed beside Cenozoic fossils — 2 to 23 million years old. The inter-event timing (Δt) between decay events follows a true Poisson process, the same quantum randomness that has governed matter since the Big Bang.
 
-But physical entropy alone is not enough. A dishonest operator could still cherry-pick favorable readings. That's why every decay event is immediately locked by a Wesolowski VDF, blind-committed on-chain, bound to an X1 SlotHash outside the operator's control, and mixed into a domain-separated SHA256 chained pool. Withholding is made economically irrational by a 20 XNT slash mechanism.
+But radioactive entropy alone is not enough. A dishonest operator could still cherry-pick favorable readings. That's why every decay event is immediately locked by a Wesolowski VDF, blind-committed on-chain, bound to an X1 SlotHash outside the operator's control, and mixed into a domain-separated SHA256 chained pool. Withholding is made economically irrational by a 20 XNT slash mechanism.
 
 The result: an entropy source that no single party — not even the operator — can predict, manipulate, or selectively withhold.
 
 > "The chain of proof becomes: Radioactive decay (uncontrollable) → seed committed → VDF locks it in time → SlotHash binds it to consensus → verifiable output. No one — including the operator — could have manipulated the result." ☢️
 
 This is not "trust me bro" randomness. This is trust physics. ☢️
+
+---
 
 ---
 
