@@ -57,6 +57,7 @@ The Geiger Entropy Oracle is a hybrid off-chain/on-chain system:
 ```
 Off-chain components:
 ├── GMC-500 Geiger counter (physical hardware)
+├── Device fingerprinting (hardware lock — serial + USB VID:PID)
 ├── Python daemon (serial reader + VDF)
 ├── Wesolowski VDF computation (chiavdf)
 └── Ed25519 signing (node keypair)
