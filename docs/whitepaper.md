@@ -23,7 +23,7 @@
 
 Echo Hound Labs presents the world's first Proof of Physical Entropy (PoPhE) primitive — a hybrid oracle combining quantum mechanical radioactive decay with five independent cryptographic security layers and on-chain verification. True randomness is physically impossible to predict, and now permanently verifiable on X1 blockchain.
 
-The protocol is live on X1 mainnet today with 60,000+ verified entropy submissions. Any dApp can call `request_randomness()` right now and receive a verified, unbiasable random value backed by quantum physics, Wesolowski VDF time-locking, X1 SlotHash binding, and domain-separated SHA256 chained pool mixing.
+The protocol is live on X1 mainnet today with 60,000+ verified entropy submissions. Any dApp can call `request_randomness()` right now and receive a verified, unbiasable random value backed by quantum physics, Wesolowski VDF time-locking, blind commit-reveal with economic slash incentives, X1 SlotHash binding, and domain-separated SHA256 chained pool mixing.
 
 > "The chain of proof becomes: Radioactive decay (uncontrollable) → seed committed → VDF locks it in time → SlotHash binds it to consensus → verifiable output. No one — including the operator — could have manipulated the result." ☢️
 
