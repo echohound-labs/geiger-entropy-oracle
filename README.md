@@ -42,8 +42,7 @@ But physical entropy alone is not enough. A dishonest operator could still cherr
 
 The result: an entropy source that no single party — not even the operator — can predict, manipulate, or selectively withhold.
 
-> "The chain of proof becomes: Physical decay (uncontrollable) → seed committed → VDF locks it in time → SlotHash binds it to consensus → verifiable output. No one — including the operator — could have manipulated the result."
-> — Theo, X1 Community Architect
+> "The chain of proof becomes: Radioactive decay (uncontrollable) → seed committed → VDF locks it in time → SlotHash binds it to consensus → verifiable output. No one — including the operator — could have manipulated the result." ☢️
 
 This is not "trust me bro" randomness. This is trust physics. ☢️
 
@@ -81,7 +80,7 @@ state = SHA256("GEIGER_POOL_V1" || state || seed)  × 32 seeds
 
 SHA256 is the same cryptographic primitive securing Bitcoin, Solana PDAs, and X1 transaction signing. The GEIGER_POOL_V1 domain separator prevents cross-protocol collisions and makes the design uniquely attributable to this protocol forever. Each new entropy contribution is irreversibly folded into the pool — no attacker can isolate, reverse, or cancel any individual seed's contribution.
 
-> "Even if one input is weak, it is cryptographically mixed into a non-linear pool." — Theo, X1 Community Architect
+> "Even if one input is weak, it is cryptographically mixed into a non-linear pool." ☢️
 
 ### Layer 5 — Economic Slash Mechanism
 If the operator commits entropy but fails to reveal within 128 slots, anyone can call slash_missed_reveal() and claim 20 XNT from the operator. Selective withholding — choosing not to reveal an unfavorable seed — is economically irrational. The bounty goes directly to the reporter — creating a self-policing incentive where anyone watching the chain is rewarded for catching lazy or malicious operators. The blind commit-reveal scheme ensures the operator cannot see the final output before being locked in.
@@ -162,22 +161,25 @@ No other oracle on any SVM chain requires an attacker to defeat five independent
 
 ## Comparison
 
-| Feature | Switchboard VRF | Chainlink VRF | PHOTON | Geiger Oracle |
-|---------|----------------|---------------|--------|---------------|
-| Chain | Solana/SVM | Multi-chain | X1 | X1 Native |
-| Entropy Source | TEE hardware | Cryptographic | 5 APIs | Physical decay |
-| Trust Model | Trust Intel | Trust Chainlink | Trust APIs | Trust physics |
-| VDF Layer | No | No | No | Yes ✓ |
-| Physical Entropy | No | No | No | Yes ✓ |
-| SlotHash Binding | No | No | No | Yes ✓ |
-| SHA256 Chained Pool | No | No | No | Yes ✓ |
-| Domain Separation | No | No | No | Yes ✓ |
-| Commit-Reveal | No | No | No | Yes ✓ |
-| Device Fingerprint | No | No | No | Yes ✓ |
-| Works Offline | No | No | No | Yes ✓ |
-| Deployed on X1 | ❌ | ❌ | ✅ | ✅ Live |
-| Node Cost | High | High | Low | ~$135 |
-| Security Layers | 1 | 1 | 1 | 5 ✓ |
+| Feature | Switchboard VRF | Chainlink VRF | PHOTON v2 | EntropyEngine v4 | Geiger Oracle |
+|---------|----------------|---------------|-----------|-----------------|---------------|
+| Chain | Solana/SVM | Multi-chain | X1 | X1 | X1 Native |
+| Entropy Source | TEE hardware | Cryptographic | 5 APIs | On-chain RANDAO | Radioactive decay |
+| Trust Model | Trust Intel | Trust Chainlink | Trust APIs | Trust bots | Trust physics |
+| VDF Layer | No | No | No | No | Yes ✓ |
+| Physical Entropy | No | No | No | No | Yes ✓ |
+| SlotHash Binding | No | No | No | Yes ✓ | Yes ✓ |
+| SHA256 Chained Pool | No | No | No | Yes ✓ | Yes ✓ |
+| Domain Separation | No | No | No | No | Yes ✓ |
+| Commit-Reveal | No | No | No | Yes ✓ | Yes ✓ |
+| Device Fingerprint | No | No | No | No | Yes ✓ |
+| Continuous Stream | No | No | Yes ✓ | No | Yes ✓ |
+| Immutable | No | No | No | Yes ✓ | No* |
+| Deployed on X1 | ❌ | ❌ | ✅ | ✅ | ✅ Live |
+| Node Cost | High | High | Low | Low | ~$135 |
+| Security Layers | 1 | 1 | 1 | 3 | 5 ✓ |
+
+*Intentionally upgradeable during active development — immutability planned post-audit
 
 ---
 
