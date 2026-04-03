@@ -63,7 +63,7 @@ async function main() {
     .rpc();
 
   // Update saved data with TX signature after confirmation
-  const pendingPath = path.join(__dirname, "../.pending_commit.json");
+  pendingPath = path.join(__dirname, "../.pending_commit.json");
   fs.writeFileSync(pendingPath, JSON.stringify({
     vdfOutputHex,
     operatorNonceHex,
