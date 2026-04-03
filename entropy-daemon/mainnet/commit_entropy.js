@@ -42,6 +42,16 @@ async function main() {
   const commitmentHash = Array.from(crypto.createHash("sha256").update(preimage).digest());
   const sequence = parseInt(sequenceStr);
 
+  // Save pending commit data BEFORE sending TX
+  // This ensures recovery can reveal even if TX times out
+  const pendingPath = path.join(__dirname, "../.pending_commit.json");
+  fs.writeFileSync(pendingPath, JSON.stringify({
+    vdfOutputHex,
+    operatorNonceHex,
+    sequence,
+    timestamp: Date.now()
+  }));
+
   const tx = await program.methods
     .commitEntropy(commitmentHash, new anchor.BN(sequence))
     .accounts({
@@ -52,7 +62,7 @@ async function main() {
     })
     .rpc();
 
-  // Save pending commit data to disk for recovery
+  // Update saved data with TX signature after confirmation
   const pendingPath = path.join(__dirname, "../.pending_commit.json");
   fs.writeFileSync(pendingPath, JSON.stringify({
     vdfOutputHex,
