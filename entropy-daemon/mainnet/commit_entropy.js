@@ -50,7 +50,6 @@ async function main() {
     operatorNonceHex,
     sequence,
     timestamp: Date.now()
-  }));
 
   const tx = await program.methods
     .commitEntropy(commitmentHash, new anchor.BN(sequence))
@@ -62,15 +61,10 @@ async function main() {
     })
     .rpc();
 
-  // Update saved data with TX signature after confirmation
-  pendingPath = path.join(__dirname, "../.pending_commit.json");
-  fs.writeFileSync(pendingPath, JSON.stringify({
-    vdfOutputHex,
-    operatorNonceHex,
-    sequence,
-    tx,
-    timestamp: Date.now()
-  }));
+  // Update tx signature in saved data
+  const saved = JSON.parse(fs.readFileSync(pendingPath, 'utf8'));
+  saved.tx = tx;
+  fs.writeFileSync(pendingPath, JSON.stringify(saved));
 
   console.log(`✓ Committed | seq=${sequence} tx=${tx}`);
 }
