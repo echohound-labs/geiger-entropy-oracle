@@ -432,6 +432,26 @@ def onchain_submitter(cfg: dict, entropy_queue: queue.Queue, logger: logging.Log
             if use_commit_reveal:
                 nonce = secrets.token_hex(32)
 
+                # Check wallet balance before committing
+                # Never commit if balance too low to cover slash
+                try:
+                    balance_result = subprocess.run(
+                        ["solana", "balance",
+                         os.path.expanduser("~/.config/solana/mainnet-deployer.json"),
+                         "--url", "https://rpc.mainnet.x1.xyz"],
+                        capture_output=True, text=True, timeout=10
+                    )
+                    balance_str = balance_result.stdout.strip().split()[0]
+                    balance_xnt = float(balance_str)
+                    if balance_xnt < 10:
+                        logger.warning(f"⚠️  Wallet balance too low ({balance_xnt} XNT) — need 10+ XNT to safely commit. Skipping cycle.")
+                        time.sleep(30)
+                        continue
+                    else:
+                        logger.debug(f"Balance OK: {balance_xnt} XNT")
+                except Exception as be:
+                    logger.warning(f"Balance check failed: {be} — proceeding anyway")
+
                 commit_result = subprocess.run(
                     ["node", str(commit_script),
                      vdf_out_32, nonce, str(sequence)],
