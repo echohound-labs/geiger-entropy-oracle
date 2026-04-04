@@ -466,8 +466,11 @@ def onchain_submitter(cfg: dict, entropy_queue: queue.Queue, logger: logging.Log
                         logger.warning("RPC timeout detected — waiting 10s then running recovery...")
                         time.sleep(10)
                         # Run recovery to clear any stuck state
-                        subprocess.run(["node", str(recover_script)], capture_output=True, text=True, timeout=30)
-                        logger.info("Recovery complete — resuming...")
+                        recovery = subprocess.run(["node", str(recover_script)], capture_output=True, text=True, timeout=30)
+                        recovery_out = recovery.stdout.strip()
+                        logger.info(f"Recovery complete — {recovery_out[:80]}")
+                        # Wait for recovery to fully land on-chain
+                        time.sleep(15)
                     continue
 
                 logger.info(f"Committed | seq={sequence} CPM={cpm}")
