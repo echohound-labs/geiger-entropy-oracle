@@ -66,7 +66,7 @@ On-chain components:
 ├── Anchor program (X1 mainnet)
 ├── Blind commit-reveal scheme (3 slot delay)
 ├── Entropy pool (rolling 32 seeds — SHA256 chained)
-├── Slash mechanism (20 XNT for missed reveals)
+├── Slash mechanism (5 XNT for missed reveals)
 ├── Node registry
 ├── Randomness requests
 └── Fulfillment results
@@ -141,8 +141,8 @@ Properties:
 Commit-Reveal + Slash:
 ├── Operator commits blind hash on-chain
 ├── Must reveal within 128 slots (~51 seconds)
-├── Slash: 20 XNT lost if reveal missed
-├── Reporter earns 20 XNT bounty
+├── Slash: 5 XNT lost if reveal missed
+├── Reporter earns 5 XNT bounty
 └── Withholding economically irrational
 ```
 
@@ -208,7 +208,7 @@ seed stored in pool
 Step 4 — SLASH:
 if operator fails to reveal within 128 slots (~51 seconds)
 anyone can call slash_missed_reveal()
-operator loses 20 XNT → reporter earns 20 XNT bounty
+operator loses 5 XNT → reporter earns 5 XNT bounty
 withholding is economically irrational
 ```
 
@@ -333,7 +333,7 @@ RPC:           https://rpc.mainnet.x1.xyz
 Live since:    March 16, 2026
 Submissions:   60,000+ verified commit-reveal cycles
 Version:       v5 — SlotHash Binding + SHA256 Chained Pool + Domain Separation
-Slash Amount:  20 XNT
+Slash Amount:  5 XNT
 ```
 
 ---
@@ -472,9 +472,9 @@ Only cryptographic hashes touch the internet
 
 ### 6.3 Minimum Wallet Balance
 ```
-Slash amount:    20 XNT
+Slash amount:    5 XNT
 Safety buffer:   5 XNT
-Minimum:         25 XNT at all times
+Minimum:         10 XNT at all times
 ```
 
 ### 6.4 Earnings Model (Year 1)
@@ -502,7 +502,7 @@ Boosted node (100 CPM max):
 | Withhold/retry | VDF delay + blind commit | VDF + threshold |
 | Cherry picking | Blind commit-reveal | Same |
 | Front running | 3 slot delay | Same |
-| Selective withholding | 20 XNT slash mechanism | ENTROPY stake slash |
+| Selective withholding | 5 XNT slash mechanism | ENTROPY stake slash |
 | Validator censorship | Multiple submissions | Multi-node redundancy |
 | Hot specimen dominance | 100 CPM cap | Same |
 | Single node bias | SlotHash binding + VDF | RANDAO aggregation |
@@ -517,7 +517,7 @@ Layer 1 — Predict quantum radioactive decay     (physically impossible)
 Layer 2 — Predict VDF output before completion  (computationally impossible)
 Layer 3 — Predict future X1 slot hash          (consensus impossible)
 Layer 4 — Reverse SHA256 chained pool          (cryptographically impossible)
-Layer 5 — Accept 20 XNT slash for withholding  (economically irrational)
+Layer 5 — Accept 5 XNT slash for withholding  (economically irrational)
 ```
 
 No other oracle on any SVM chain requires an attacker to defeat five independent layers from five different domains simultaneously.
@@ -586,7 +586,7 @@ Phase 4: Trust subnet validator set
 ✓ Anchor program deployed on X1 mainnet
 ✓ Commit-reveal scheme
 ✓ Device fingerprinting
-✓ Slash mechanism (20 XNT)
+✓ Slash mechanism (5 XNT)
 ✓ Auto-recovery system
 ✓ SlotHash binding
 ✓ SHA256 chained pool with domain separation

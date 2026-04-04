@@ -45,11 +45,11 @@ recover_commitment.js → mainnet-deployer.json ✅
 ```
 Using `id.json` for mainnet = wrong PDA = stuck commitments forever.
 
-### Rule 5: Keep minimum 25 XNT in mainnet wallet
+### Rule 5: Keep minimum 10 XNT in mainnet wallet
 ```
-Slash amount: 20 XNT
+Slash amount: 5 XNT
 Safety buffer: 5 XNT
-Minimum: 25 XNT at all times
+Minimum: 10 XNT at all times
 Wallet: HGFisVbULNKqogtPuGTfcHG9y6i5nboZabYwifkiiodo
 ```
 
@@ -168,7 +168,7 @@ Recovery script outputs:
 ```
 
 > ⚠️ If recovery keeps finding STALE commitments, check wallet balance.
-> Slash requires 20 XNT in operator wallet.
+> Slash requires 5 XNT in operator wallet.
 
 ---
 
@@ -278,11 +278,11 @@ Daily TXs: ~6,000-8,000
 
 ## Slash Mechanism
 ```
-Slash amount:    20 XNT
+Slash amount:    5 XNT
 Reveal deadline: 128 slots (~51 seconds)
-Reporter bounty: 20 XNT (goes to whoever calls slash)
+Reporter bounty: 5 XNT (goes to whoever calls slash)
 Auto-recovery:   3 layers — prevents accidental slash
-Minimum wallet:  25 XNT at all times
+Minimum wallet:  10 XNT at all times
 ```
 
 ---

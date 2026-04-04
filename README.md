@@ -38,7 +38,7 @@ Radioactive decay is governed by quantum mechanics. It is fundamentally unpredic
 
 The Geiger Entropy Oracle captures this physical randomness using a GMC-500 Geiger counter placed beside Cenozoic fossils — 2 to 23 million years old. The inter-event timing (Δt) between decay events follows a true Poisson process, the same quantum randomness that has governed matter since the Big Bang.
 
-But radioactive entropy alone is not enough. A dishonest operator could still cherry-pick favorable readings. That's why every decay event is immediately locked by a Wesolowski VDF, blind-committed on-chain, bound to an X1 SlotHash outside the operator's control, and mixed into a domain-separated SHA256 chained pool. Withholding is made economically irrational by a 20 XNT slash mechanism.
+But radioactive entropy alone is not enough. A dishonest operator could still cherry-pick favorable readings. That's why every decay event is immediately locked by a Wesolowski VDF, blind-committed on-chain, bound to an X1 SlotHash outside the operator's control, and mixed into a domain-separated SHA256 chained pool. Withholding is made economically irrational by a 5 XNT slash mechanism.
 
 The result: an entropy source that no single party — not even the operator — can predict, manipulate, or selectively withhold.
 
@@ -87,7 +87,7 @@ SHA256 is the same cryptographic primitive securing Bitcoin, Solana PDAs, and X1
 
 
 ### Layer 5 — Economic Slash Mechanism
-If the operator commits entropy but fails to reveal within 128 slots, anyone can call slash_missed_reveal() and claim 20 XNT from the operator. Selective withholding — choosing not to reveal an unfavorable seed — is economically irrational. The bounty goes directly to the reporter — creating a self-policing incentive where anyone watching the chain is rewarded for catching lazy or malicious operators. The blind commit-reveal scheme ensures the operator cannot see the final output before being locked in.
+If the operator commits entropy but fails to reveal within 128 slots, anyone can call slash_missed_reveal() and claim 5 XNT from the operator. Selective withholding — choosing not to reveal an unfavorable seed — is economically irrational. The bounty goes directly to the reporter — creating a self-policing incentive where anyone watching the chain is rewarded for catching lazy or malicious operators. The blind commit-reveal scheme ensures the operator cannot see the final output before being locked in.
 
 ---
 
@@ -156,7 +156,7 @@ Layer 1 — Predict quantum radioactive decay     (physically impossible)
 Layer 2 — Predict VDF output before completion  (computationally impossible)
 Layer 3 — Predict future X1 slot hash          (consensus impossible)
 Layer 4 — Reverse SHA256 chained pool          (cryptographically impossible)
-Layer 5 — Accept 20 XNT slash for withholding (economically irrational)
+Layer 5 — Accept 5 XNT slash for withholding (economically irrational)
 ```
 
 No other oracle on any SVM chain requires an attacker to defeat five independent layers from five different domains simultaneously.

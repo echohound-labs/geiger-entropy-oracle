@@ -13,7 +13,7 @@ Operator:      HGFisVbULNKqogtPuGTfcHG9y6i5nboZabYwifkiiodo
 RPC:           https://rpc.mainnet.x1.xyz
 Explorer:      https://explorer.mainnet.x1.xyz
 Version:       v5 — SlotHash Binding + SHA256 Chained Pool + Domain Separation
-Slash Amount:  20 XNT
+Slash Amount:  5 XNT
 Status:        🟢 LIVE
 ```
 
@@ -35,7 +35,7 @@ Status:        🟡 TESTING
 
 | Branch | Network | Description | Status |
 |--------|---------|-------------|--------|
-| `main` | Mainnet | v5 PRODUCTION — SlotHash binding + SHA256 chained pool + 20 XNT slash + 15s cycle | 🟢 Production |
+| `main` | Mainnet | v5 PRODUCTION — SlotHash binding + SHA256 chained pool + 5 XNT slash + 15s cycle | 🟢 Production |
 | `mainnet-commit-reveal` | Mainnet | v4 legacy — commit-reveal + VDF + device fingerprint | 🔵 Fallback |
 | `testnet-vdf-verification` | Testnet | Testing sandbox — same as main pointing to testnet | 🟡 Testing |
 | `chain-spammer` | Mainnet | Ultra fast, no VDF — stress testing X1 | ⚪ Stress Test |
@@ -46,7 +46,7 @@ Status:        🟡 TESTING
 
 | Version | Branch | Date | Changes |
 |---------|--------|------|---------|
-| v5 | `main` | March 29, 2026 | SlotHash binding, SHA256 chained pool, GEIGER_POOL_V1 domain separator, 20 XNT slash, 15s cycle sleep, auto-reveal recovery |
+| v5 | `main` | March 29, 2026 | SlotHash binding, SHA256 chained pool, GEIGER_POOL_V1 domain separator, 5 XNT slash, 15s cycle sleep, auto-reveal recovery |
 | v4 | `mainnet-commit-reveal` | March 16, 2026 | Commit-reveal, VDF, device fingerprint, slash mechanism |
 | v3 | `main` (old) | March 2026 | Fast VDF direct submit |
 
