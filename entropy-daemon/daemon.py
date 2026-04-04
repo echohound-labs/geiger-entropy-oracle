@@ -400,6 +400,11 @@ def onchain_submitter(cfg: dict, entropy_queue: queue.Queue, logger: logging.Log
                                 sequence += 1
                             else:
                                 logger.warning(f"Auto-reveal failed: {reveal_result.stderr.strip()[:100]}")
+                                logger.warning("Auto-reveal failed — slashing to clear stuck commitment...")
+                                time.sleep(5)
+                                subprocess.run(["node", str(recover_script)], capture_output=True, text=True, timeout=30)
+                                logger.info("Slash recovery complete — resuming...")
+                                sequence += 1
                         else:
                             logger.info(f"✓ Resuming from sequence {sequence} (no saved data for auto-reveal)")
                 else:
