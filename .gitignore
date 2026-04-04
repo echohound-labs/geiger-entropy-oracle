@@ -11,3 +11,4 @@ entropy-daemon/geiger_entropy.csv
 entropy-daemon/tests/sample.csv
 __pycache__/
 *.pyc
+docs/whitepaper.md
