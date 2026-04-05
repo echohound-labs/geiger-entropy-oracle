@@ -1,5 +1,5 @@
 [daemon]
-port = 8745
+port = 8746
 log_level = "INFO"
 
 [node]
@@ -16,8 +16,8 @@ baud = 115200
 poll_interval_ms = 250
 
 [x1]
-rpc_url = "https://rpc.testnet.x1.xyz"
-program_id = "2dQf9uaCzXewrDNLttmtzQmc3SmqfAHz3qahKQjtGQyY"
-oracle_state = "CrrLuXpoCuK8szmtXxBEDPc5FTkbUGzEWfMyjeSL83bS"
-entropy_pool = "KMgwwzxYxrXufHySyMNchwyhupsNNsc4wPN71xtqoGG"
+rpc_url = "https://rpc.mainnet.x1.xyz"
+program_id = "BxUNg2yo5371BQMZPkfcxdCptFRDHkhvEXNM1QNPBRYU"
+oracle_state = "BygMTZ1oLBD9tDmssnt9LkNT7BEd2PCJBCzurwtMuTqm"
+entropy_pool = "GDECYXCXietabJs9Y1baKzD3t4VFBw4eZWPnvYenyi77"
 entropy_node = "3KA1UPPZf1N36RgmLwDKqAdJB6WPnX44aBs9rgP3TvdV"
