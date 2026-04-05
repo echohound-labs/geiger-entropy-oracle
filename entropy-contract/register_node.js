@@ -11,9 +11,9 @@ async function main() {
   const wallet = Keypair.fromSecretKey(new Uint8Array(keypairData));
   console.log("Operator:", wallet.publicKey.toBase58());
 
-  const connection = new Connection("https://rpc.testnet.x1.xyz", "confirmed");
+  const connection = new Connection("https://rpc.mainnet.x1.xyz", "confirmed");
   const idl = JSON.parse(fs.readFileSync(path.join(__dirname, "target/idl/geiger_entropy.json"), "utf8"));
-  const programId = new PublicKey("2dQf9uaCzXewrDNLttmtzQmc3SmqfAHz3qahKQjtGQyY");
+  const programId = new PublicKey("BxUNg2yo5371BQMZPkfcxdCptFRDHkhvEXNM1QNPBRYU");
 
   const provider = new anchor.AnchorProvider(
     connection,
