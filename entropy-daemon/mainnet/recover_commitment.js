@@ -32,22 +32,26 @@ async function main() {
     [Buffer.from("entropy_node"), wallet.publicKey.toBuffer()], programId
   );
 
+  const SLOT_HASHES_PUBKEY = new PublicKey("SysvarS1otHashes111111111111111111111111111");
+
   try {
     const pc = await program.account.pendingCommitment.fetch(pendingCommitmentPDA);
-    
+
     if (pc.revealed) {
       console.log("CLEAN: commitment already revealed");
       console.log(JSON.stringify({status: "clean", sequence: pc.sequence.toString()}));
       return;
     }
 
-    // Get current slot
     const slot = await connection.getSlot();
     const committedSlot = pc.committedSlot.toNumber();
     const deadline = committedSlot + 128;
+    const slotsRemaining = deadline - slot;
+
+    console.log(`Slots remaining: ${slotsRemaining}`);
 
     if (slot > deadline) {
-      // Slash to clear
+      // Past deadline — slash to clear
       console.log("STALE: deadline missed, slashing to clear...");
       const tx = await program.methods
         .slashMissedReveal()
@@ -65,25 +69,85 @@ async function main() {
       const pendingPath = path.join(__dirname, "../.pending_commit.json");
       if (fs.existsSync(pendingPath)) {
         const saved = JSON.parse(fs.readFileSync(pendingPath, "utf8"));
-        console.log(`PENDING: attempting auto-reveal for seq=${pc.sequence.toString()}`);
-        console.log(JSON.stringify({
-          status: "pending",
-          sequence: pc.sequence.toString(),
-          vdfOutputHex: saved.vdfOutputHex,
-          operatorNonceHex: saved.operatorNonceHex,
-          committedSlot: committedSlot,
-          currentSlot: slot,
-          slotsRemaining: deadline - slot
-        }));
+        console.log(`PENDING: attempting auto-reveal for seq=${pc.sequence.toString()} (${slotsRemaining} slots remaining)`);
+
+        try {
+          // Use Anchor directly — same as Theo suggested
+          const vdfOutput = Array.from(Buffer.from(saved.vdfOutputHex, "hex").slice(0, 32));
+          const nonce = Array.from(Buffer.from(saved.operatorNonceHex, "hex"));
+          const zeroSig = Array(64).fill(0);
+
+          const revealTx = await program.methods
+            .revealEntropy(
+              vdfOutput,
+              nonce,
+              20,
+              new anchor.BN(Math.floor(Date.now() / 1000)),
+              zeroSig,
+              new anchor.BN(0),
+              0,
+              0
+            )
+            .accounts({
+              oracleState: oracleStatePDA,
+              entropyPool: entropyPoolPDA,
+              pendingCommitment: pendingCommitmentPDA,
+              entropyNode: entropyNodePDA,
+              operator: wallet.publicKey,
+              systemProgram: anchor.web3.SystemProgram.programId,
+              slotHashes: SLOT_HASHES_PUBKEY,
+            })
+            .rpc();
+
+          console.log("AUTO-REVEAL SUCCESS:", revealTx);
+          console.log(JSON.stringify({
+            status: "clean",
+            sequence: (parseInt(pc.sequence.toString()) + 1).toString()
+          }));
+
+          // Clean up saved file
+          fs.unlinkSync(pendingPath);
+
+        } catch(revealErr) {
+          console.error("AUTO-REVEAL FAILED:", revealErr.message.slice(0, 150));
+          // Slash to clear since reveal failed
+          console.log("Slashing to clear...");
+          try {
+            const tx = await program.methods
+              .slashMissedReveal()
+              .accounts({
+                pendingCommitment: pendingCommitmentPDA,
+                operator: wallet.publicKey,
+                reporter: wallet.publicKey,
+                systemProgram: anchor.web3.SystemProgram.programId,
+              })
+              .rpc();
+            console.log("SLASHED:", tx);
+            console.log(JSON.stringify({status: "slashed", sequence: pc.sequence.toString()}));
+          } catch(slashErr) {
+            console.error("SLASH FAILED:", slashErr.message.slice(0, 100));
+            console.log(JSON.stringify({status: "pending", sequence: pc.sequence.toString()}));
+          }
+        }
       } else {
-        console.log("PENDING: commitment exists but no saved data — cannot auto-reveal");
-        console.log(JSON.stringify({
-          status: "pending",
-          sequence: pc.sequence.toString(),
-          committedSlot: committedSlot,
-          currentSlot: slot,
-          slotsRemaining: deadline - slot
-        }));
+        // No saved data — slash to clear
+        console.log("PENDING: no saved data — slashing to clear");
+        try {
+          const tx = await program.methods
+            .slashMissedReveal()
+            .accounts({
+              pendingCommitment: pendingCommitmentPDA,
+              operator: wallet.publicKey,
+              reporter: wallet.publicKey,
+              systemProgram: anchor.web3.SystemProgram.programId,
+            })
+            .rpc();
+          console.log("SLASHED:", tx);
+          console.log(JSON.stringify({status: "slashed", sequence: pc.sequence.toString()}));
+        } catch(slashErr) {
+          console.error("SLASH FAILED:", slashErr.message.slice(0, 100));
+          console.log(JSON.stringify({status: "pending", sequence: pc.sequence.toString()}));
+        }
       }
     }
   } catch(e) {
