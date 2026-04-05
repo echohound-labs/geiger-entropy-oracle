@@ -1,7 +1,7 @@
 # 🔧 Setup Guide — Geiger Entropy Oracle Node v5
 Complete guide to running a Geiger Entropy Oracle node on X1 Mainnet.
 
-> ⚠️ **Important:** Node operators must maintain a minimum balance of **10 XNT** in their wallet at all times. The slash mechanism deducts 5 XNT for missed reveals. Keep your wallet funded.
+> ⚠️ **Important:** Node operators must maintain a minimum balance of **25 XNT** in their wallet at all times. The slash mechanism deducts 20 XNT for missed reveals. Keep your wallet funded.
 
 ---
 
@@ -52,9 +52,14 @@ rustc --version
 
 ### 5. Install Solana CLI
 ```bash
-sh -c "$(curl -sSfL https://release.solana.com/stable/install)"
+sh -c "$(curl -sSfL https://release.anza.xyz/stable/install)"
 export PATH="$HOME/.local/share/solana/install/active_release/bin:$PATH"
 solana --version
+```
+
+Point the Solana CLI at X1 Mainnet:
+```bash
+solana config set --url https://rpc.mainnet.x1.xyz
 ```
 
 ### 6. Install Anchor CLI (developers only — skip if just running a node)
@@ -65,11 +70,7 @@ avm use 0.32.1
 anchor --version
 ```
 
-### 7. Install Python dependencies
-```bash
-cd geiger-entropy-oracle/entropy-daemon
-pip3 install -r requirements.txt --break-system-packages
-```
+
 
 ---
 
@@ -87,8 +88,11 @@ Run in Windows PowerShell as Administrator every time you plug in:
 usbipd list
 # Find: USB-SERIAL CH340 (COM4) — note the busid (e.g. 2-2)
 
+# Bind the device first (required on usbipd v4+)
+usbipd bind --busid 2-7
+
 # Attach to WSL
-usbipd attach --busid 2-2 --wsl
+usbipd attach --busid 2-7 --wsl
 ```
 
 Verify in WSL:
@@ -98,7 +102,13 @@ dmesg | grep tty
 ls /dev/ttyUSB0
 ```
 
-> **Note:** Repeat `usbipd attach` after every reboot or replug.
+Add your user to the dialout group (required for serial port access):
+```bash
+sudo usermod -a -G dialout $USER
+# Log out and back in for this to take effect
+```
+
+> **Note:** Repeat `usbipd attach` after every reboot or replug. The `usbipd bind` step only needs to be done once.
 
 ---
 
@@ -130,10 +140,10 @@ solana address -k ~/.config/solana/id.json
 ### Fund your wallet
 You need XNT for transaction fees and slash protection:
 
-- **Minimum recommended: 10 XNT**
+- **Minimum recommended: 25 XNT**
 - Each commit-reveal cycle costs ~0.00005 XNT
-- Slash mechanism deducts **5 XNT** for missed reveals
-- Keep at least 10 XNT at all times as a safety buffer
+- Slash mechanism deducts **20 XNT** for missed reveals
+- Keep at least 25 XNT at all times as a safety buffer
 - X1 Faucet: https://faucet.x1.xyz
 ```bash
 # Check balance
@@ -154,6 +164,13 @@ cd geiger-entropy-oracle
 ```bash
 cd entropy-contract
 npm install
+cd ..
+```
+
+### Install Node dependencies for daemon
+```bash
+cd entropy-daemon
+npm install @coral-xyz/anchor @solana/web3.js
 cd ..
 ```
 
@@ -273,6 +290,8 @@ Add to config-mainnet.toml:
   entropy_node = "YourNodePDA..."
 ```
 
+> ⚠️ **Important:** The `entropy_node` PDA is unique to YOUR wallet. Never copy someone else's Node PDA. Always use the value output by `register_node.js` for your specific wallet.
+
 Copy the Node PDA into your `config-mainnet.toml`.
 
 ---
@@ -376,12 +395,12 @@ This is a permanent scientific record. Every decay event timestamped to the nano
 
 ## Slash Mechanism
 
-The oracle uses a **5 XNT slash** to ensure honest operation:
+The oracle uses a **20 XNT slash** to ensure honest operation:
 
 - Operator commits entropy → blind hash locked on-chain
 - Operator must reveal within **128 slots (~51 seconds)**
 - If operator fails to reveal → anyone can call `slash_missed_reveal()`
-- Operator loses **5 XNT** → reporter earns **5 XNT** as bounty
+- Operator loses **20 XNT** → reporter earns **20 XNT** as bounty
 
 **Three layers of automatic recovery prevent accidental slashing:**
 
@@ -389,7 +408,7 @@ The oracle uses a **5 XNT slash** to ensure honest operation:
 2. **Reveal retry handler** — 3 attempts with 10s delay for timeouts
 3. **Startup recovery** — auto-reveals stuck commitments using saved pending data
 
-> **Keep at least 10 XNT in your operator wallet at all times.**
+> **Keep at least 25 XNT in your operator wallet at all times.**
 
 ---
 
@@ -437,6 +456,10 @@ solana balance --url https://rpc.mainnet.x1.xyz
 # Watch live logs
 tail -f logs/mainnet-daemon.log
 
+# List all nodes
+cd ~/geiger-entropy-oracle/entropy-contract
+node list_nodes.js
+
 # View on explorer
 # https://explorer.mainnet.x1.xyz/address/YOUR_WALLET
 ```
@@ -482,7 +505,7 @@ fuser -k 8746/tcp
 **Insufficient balance:**
 ```bash
 solana balance --url https://rpc.mainnet.x1.xyz
-# Keep minimum 10 XNT — 5 XNT needed for slash protection
+# Keep minimum 25 XNT — 20 XNT needed for slash protection
 ```
 
 **Stuck commitment / UnrevealedCommitmentPending spam:**
