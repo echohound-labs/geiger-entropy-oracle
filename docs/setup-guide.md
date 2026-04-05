@@ -1,7 +1,7 @@
 # 🔧 Setup Guide — Geiger Entropy Oracle Node v5
 Complete guide to running a Geiger Entropy Oracle node on X1 Mainnet.
 
-> ⚠️ **Important:** Node operators must maintain a minimum balance of **25 XNT** in their wallet at all times. The slash mechanism deducts 20 XNT for missed reveals. Keep your wallet funded.
+> ⚠️ **Important:** Node operators must maintain a minimum balance of **10 XNT** in their wallet at all times. The slash mechanism deducts 5 XNT for missed reveals. Keep your wallet funded.
 
 ---
 
@@ -140,10 +140,10 @@ solana address -k ~/.config/solana/id.json
 ### Fund your wallet
 You need XNT for transaction fees and slash protection:
 
-- **Minimum recommended: 25 XNT**
+- **Minimum recommended: 10 XNT**
 - Each commit-reveal cycle costs ~0.00005 XNT
-- Slash mechanism deducts **20 XNT** for missed reveals
-- Keep at least 25 XNT at all times as a safety buffer
+- Slash mechanism deducts **5 XNT** for missed reveals
+- Keep at least 10 XNT at all times as a safety buffer
 - X1 Faucet: https://faucet.x1.xyz
 ```bash
 # Check balance
@@ -395,12 +395,12 @@ This is a permanent scientific record. Every decay event timestamped to the nano
 
 ## Slash Mechanism
 
-The oracle uses a **20 XNT slash** to ensure honest operation:
+The oracle uses a **5 XNT slash** to ensure honest operation:
 
 - Operator commits entropy → blind hash locked on-chain
 - Operator must reveal within **128 slots (~51 seconds)**
 - If operator fails to reveal → anyone can call `slash_missed_reveal()`
-- Operator loses **20 XNT** → reporter earns **20 XNT** as bounty
+- Operator loses **5 XNT** → reporter earns **5 XNT** as bounty
 
 **Three layers of automatic recovery prevent accidental slashing:**
 
@@ -408,7 +408,9 @@ The oracle uses a **20 XNT slash** to ensure honest operation:
 2. **Reveal retry handler** — 3 attempts with 10s delay for timeouts
 3. **Startup recovery** — auto-reveals stuck commitments using saved pending data
 
-> **Keep at least 25 XNT in your operator wallet at all times.**
+> **Keep at least 10 XNT in your operator wallet at all times.**
+
+> ⚠️ **Note:** Currently slashed XNT is returned to the operator's own wallet. In a future upgrade, slashed XNT will be awarded to watchers who report missed reveals. Keep adequate balance for when this goes live.
 
 ---
 
@@ -505,7 +507,7 @@ fuser -k 8746/tcp
 **Insufficient balance:**
 ```bash
 solana balance --url https://rpc.mainnet.x1.xyz
-# Keep minimum 25 XNT — 20 XNT needed for slash protection
+# Keep minimum 10 XNT — 5 XNT needed for slash protection
 ```
 
 **Stuck commitment / UnrevealedCommitmentPending spam:**
