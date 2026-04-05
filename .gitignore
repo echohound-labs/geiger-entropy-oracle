@@ -12,3 +12,4 @@ entropy-daemon/tests/sample.csv
 __pycache__/
 *.pyc
 docs/whitepaper.md
+docs/__entropy-metadata.json__
