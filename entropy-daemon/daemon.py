@@ -439,7 +439,7 @@ def onchain_submitter(cfg: dict, entropy_queue: queue.Queue, logger: logging.Log
                         ["solana", "balance",
                          os.path.expanduser("~/.config/solana/mainnet-deployer.json"),
                          "--url", "https://rpc.mainnet.x1.xyz"],
-                        capture_output=True, text=True, timeout=10
+                        capture_output=True, text=True, timeout=20
                     )
                     balance_str = balance_result.stdout.strip().split()[0]
                     balance_xnt = float(balance_str)
@@ -463,14 +463,14 @@ def onchain_submitter(cfg: dict, entropy_queue: queue.Queue, logger: logging.Log
                     logger.warning(f"Commit failed: {err}")
                     # If RPC timeout — wait and retry commit
                     if any(x in err.lower() for x in ["timeout", "timed out", "fetch failed", "econnrefused", "etimedout", "connecttimeout"]):
-                        logger.warning("RPC timeout detected — waiting 10s then running recovery...")
-                        time.sleep(10)
+                        logger.warning("RPC timeout detected — waiting 15s then running recovery...")
+                        time.sleep(15)
                         # Run recovery to clear any stuck state
-                        recovery = subprocess.run(["node", str(recover_script)], capture_output=True, text=True, timeout=30)
+                        recovery = subprocess.run(["node", str(recover_script)], capture_output=True, text=True, timeout=90)
                         recovery_out = recovery.stdout.strip()
                         logger.info(f"Recovery complete — {recovery_out[:80]}")
-                        # Wait for recovery to fully land on-chain
-                        time.sleep(15)
+                        # Wait for recovery TX to fully land on-chain
+                        time.sleep(20)
                     continue
 
                 logger.info(f"Committed | seq={sequence} CPM={cpm}")
