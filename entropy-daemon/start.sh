@@ -5,8 +5,8 @@
 echo "☢️  Starting Geiger Entropy Oracle v5..."
 
 # Check Geiger counter is connected
-if [ ! -e /dev/ttyUSB0 ]; then
-    echo "❌ GMC-500 not detected at /dev/ttyUSB0"
+if [ ! -e /dev/ttyUSB0 ] && [ ! -e /dev/ttyUSB1 ]; then
+    echo "❌ GMC-500 not detected at /dev/ttyUSB0 or /dev/ttyUSB1"
     echo "   Connect your Geiger counter via USB and try again"
     exit 1
 fi
