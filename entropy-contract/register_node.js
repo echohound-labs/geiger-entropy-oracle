@@ -44,7 +44,7 @@ async function main() {
   }
 
   const tx = await program.methods
-    .registerNode(wallet.publicKey, "Genesis Node — Cenozoic Fossils ☢️")
+    .registerNode(wallet.publicKey, process.argv[2] || "My Node")
     .accounts({
       oracleState: oracleStatePDA,
       entropyNode: entropyNodePDA,

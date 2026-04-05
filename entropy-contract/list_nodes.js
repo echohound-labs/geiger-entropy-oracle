@@ -19,7 +19,7 @@ async function main() {
 
   console.log("Fetching all registered nodes on X1 Mainnet...\n");
 
-  const nodes = await program.account.entropyNode.all();
+  const nodes = (await program.account.entropyNode.all()).sort((a, b) => b.account.submissions.toNumber() - a.account.submissions.toNumber());
 
   if (nodes.length === 0) {
     console.log("No nodes registered yet.");
