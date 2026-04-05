@@ -13,3 +13,4 @@ __pycache__/
 *.pyc
 docs/whitepaper.md
 docs/__entropy-metadata.json__
+docs/entropy-metadata.json
