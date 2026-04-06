@@ -348,8 +348,8 @@ Sequences: 22,800+ on-chain
 |-------|--------|-------------|
 | Phase 1 — Genesis | ✅ Complete | VDF, commit-reveal, device fingerprint, slash, 58k+ submissions |
 | Phase 2 — v5 Upgrade | ✅ Complete | SlotHash binding, SHA256 chained pool, domain separation |
-| Phase 3 — Token | 🔜 Q2 2026 | ENTROPY SPL token, emission tied to reveal_entropy() |
-| Phase 4 — Multi-Node | 🔜 Planned | Multiple operators, staking, slash in ENTROPY |
+| Phase 3 — Token | 🔜 Q2 2026 | token, emission tied to reveal_entropy() |
+| Phase 4 — Multi-Node | 🔜 Planned | Multiple operators, staking, slash in token |
 | Phase 5 — Immutable | 🔜 Planned | Third-party audit, revoke upgrade authority |
 
 ---
