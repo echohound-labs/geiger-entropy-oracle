@@ -921,7 +921,7 @@ pub struct RevealEntropyV6<'info> {
     )]
     pub pending_commitment: Account<'info, PendingCommitment>,
     #[account(
-        init,
+        init_if_needed,
         payer = operator,
         space = 8 + PendingFinalize::INIT_SPACE,
         seeds = [FINALIZE_SEED, operator.key().as_ref(), &pending_commitment.sequence.to_le_bytes()],
