@@ -455,6 +455,17 @@ def onchain_submitter(cfg: dict, entropy_queue: queue.Queue, logger: logging.Log
                 except Exception as be:
                     logger.warning(f"Balance check failed: {be} — proceeding anyway")
 
+                # v6: Close any stuck PendingFinalize BEFORE committing
+                if use_v6:
+                    close_script = Path(__file__).parent / "mainnet" / "close_pending_finalize.js"
+                    if close_script.exists():
+                        close_result = subprocess.run(
+                            ["node", str(close_script), str(sequence)],
+                            capture_output=True, text=True, timeout=30
+                        )
+                        if close_result.returncode == 0 and close_result.stdout.strip():
+                            logger.info(f"Pre-commit cleanup: {close_result.stdout.strip()[:80]}")
+
                 commit_result = subprocess.run(
                     ["node", str(commit_script),
                      vdf_out_32, nonce, str(sequence)],
