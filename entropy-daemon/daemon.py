@@ -523,6 +523,14 @@ def onchain_submitter(cfg: dict, entropy_queue: queue.Queue, logger: logging.Log
                     if not revealed:
                         logger.error(f"Reveal failed after 3 retries — running recovery")
                         subprocess.run(["node", str(recover_script)], capture_output=True, text=True, timeout=30)
+                        # If v6 and "already in use" error — close stuck PendingFinalize
+                        if use_v6 and "already in use" in reveal_result.stderr:
+                            logger.warning(f"Stuck PendingFinalize detected for seq={sequence} — closing...")
+                            close_script = Path(__file__).parent / "mainnet" / "close_pending_finalize.js"
+                            if close_script.exists():
+                                subprocess.run(["node", str(close_script), str(sequence)],
+                                    capture_output=True, text=True, timeout=30)
+                                logger.info(f"Closed stuck PendingFinalize for seq={sequence}")
                         sequence += 1
 
             else:
