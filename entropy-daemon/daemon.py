@@ -138,13 +138,13 @@ def get_vdf_iterations(cpm: int) -> int:
     Ensures VDF completes before next decay event arrives.
     """
     if cpm < 20:
-        return 50000   # 0.17s — background radiation (tuned down from 100k)
+        return 100000  # 0.34s — minimum floor (Theo: 100K regardless of CPM)
     elif cpm < 50:
-        return 30000   # 0.10s — mild source
+        return 100000  # 0.34s — minimum floor
     elif cpm < 100:
-        return 20000   # 0.08s — hot source
+        return 100000  # 0.34s — minimum floor
     else:
-        return 15000   # 0.05s — very hot source (bumped from 10k for security)
+        return 100000  # 0.34s — minimum floor (FPGA defense)
 
 def compute_vdf(seed: bytes, cpm: int) -> tuple:
     """Compute VDF proof from entropy seed.
