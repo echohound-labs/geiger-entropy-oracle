@@ -15,8 +15,8 @@ Program ID:    BxUNg2yo5371BQMZPkfcxdCptFRDHkhvEXNM1QNPBRYU
 Oracle State:  BygMTZ1oLBD9tDmssnt9LkNT7BEd2PCJBCzurwtMuTqm
 Entropy Pool:  GDECYXCXietabJs9Y1baKzD3t4VFBw4eZWPnvYenyi77
 Node PDA:      z4Psp8qVfP4t3jiWHE29rrisTPMC78tu8LmDhRSEL3s
-Submissions:   58,000+ quantum decay events on-chain
-Version:       v5 — SlotHash Binding + SHA256 Chained Pool + Domain Separation
+Submissions:   22,000+ quantum decay events on-chain
+Version:       v6 — Delayed SlotHash Finalize + 5M VDF + SHA256 Chained Pool
 ```
 
 [📄 Read the Whitepaper](docs/whitepaper.md) | [🔍 Explorer](https://explorer.mainnet.x1.xyz/address/BxUNg2yo5371BQMZPkfcxdCptFRDHkhvEXNM1QNPBRYU) | [💬 Telegram](https://t.me/+axtvX9GbsnJkMGRh)
@@ -58,10 +58,9 @@ Radioactive decay is quantum mechanical — not just from fossils, but from back
 ### Layer 2 — Wesolowski VDF Time Lock
 After capturing the decay event, a Verifiable Delay Function (VDF) is computed. This creates a cryptographic time lock — the final seed cannot be known until the VDF computation completes. Dynamic iterations ensure the VDF always takes longer than one X1 slot (~400ms), making post-capture manipulation impossible.
 ```
-CPM < 20  → 50,000 iterations (~0.17s)
-CPM < 50  → 30,000 iterations (~0.10s)
-CPM < 100 → 20,000 iterations (~0.08s)
-CPM 100+  → 15,000 iterations (~0.05s)
+Fixed: 5,000,000 iterations (~15s) regardless of CPM
+FPGA resistant — 15 seconds sequential compute required
+Cannot be parallelized or pre-computed
 ```
 
 ```
@@ -69,7 +68,7 @@ Signature alone:              "Trust me I did not cheat"
 VDF-secured Physical Entropy: "Here's a cryptographic proof cheating was impossible"
 ```
 
-### Layer 3 — X1 SlotHash Binding ✨ NEW in v5
+### Layer 3 — X1 SlotHash Binding ✨
 At reveal time, the current X1 SlotHash is mixed into the final seed:
 ```
 bound_seed = SHA256(vdf_output || slot_hash || sequence)
@@ -77,7 +76,7 @@ bound_seed = SHA256(vdf_output || slot_hash || sequence)
 
 The slot hash is determined by X1 blockchain consensus — completely outside the operator's control. Even if an adversary could somehow predict the physical decay and the VDF output, they cannot predict a future slot hash. Two fundamentally independent and unpredictable entropy sources are combined on every single reveal.
 
-### Layer 4 — Domain-Separated SHA256 Chained Pool ✨ NEW in v5
+### Layer 4 — Domain-Separated SHA256 Chained Pool ✨
 The entropy pool uses cryptographic hashing with domain separation — not linear XOR mixing:
 ```
 state = SHA256("GEIGER_POOL_V1" || state || seed)  × 32 seeds
@@ -91,7 +90,7 @@ If the operator commits entropy but fails to reveal within 128 slots, anyone can
 
 ---
 
-## Architecture — v5
+## Architecture — v6
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │                    GMC-500+ Geiger Counter                   │
@@ -108,7 +107,7 @@ If the operator commits entropy but fails to reveal within 128 slots, anyone can
 │  • detects rising edge decay events                         │
 │  • extracts Δt between events (Poisson process)             │
 │  • SHA256(Δt + timestamp + CPM + CPS) = raw seed            │
-│  • Wesolowski VDF(seed, dynamic_iters) = time-locked        │
+│  • Wesolowski VDF(seed, 5M_iters) = time-locked        │
 │  • Ed25519 signs final seed                                 │
 │  • BLIND commit hash on-chain (commit-reveal)               │
 │  • reveal after 3 slots — SlotHash mixed on-chain           │
@@ -362,7 +361,7 @@ Hardware: GMC-500+ Geiger Counter
 Fossils:  Cenozoic Era — 2–23 million years old
 Wallet:   HGFisVbULNKqogtPuGTfcHG9y6i5nboZabYwifkiiodo
 Live:     March 16, 2026
-Sequences: 58,000+ on-chain
+Sequences: 22,000+ on-chain
 ```
 
 ---
