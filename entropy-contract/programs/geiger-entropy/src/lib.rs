@@ -256,11 +256,9 @@ pub mod geiger_entropy {
 
         // Read current slot hash from SlotHashes sysvar for binding
         let slot_hashes_data = ctx.accounts.slot_hashes.try_borrow_data()?;
-        // SlotHashes sysvar layout: 8 bytes length, then entries of (slot: u64, hash: [u8;32])
         let binding_slot = clock.slot;
         let mut slot_hash = [0u8; 32];
         if slot_hashes_data.len() >= 48 {
-            // First entry is most recent slot hash — bytes 8..16 = slot, 16..48 = hash
             slot_hash.copy_from_slice(&slot_hashes_data[16..48]);
         }
         drop(slot_hashes_data);
@@ -272,7 +270,7 @@ pub mod geiger_entropy {
         hasher.update(&pc.sequence.to_le_bytes());
         let bound_seed: [u8; 32] = hasher.finalize().into();
 
-        // Store bound seed in entropy pool (not raw vdf_output)
+        // Store bound seed in entropy pool
         let pool = &mut ctx.accounts.entropy_pool;
         let idx = (pool.head as usize) % POOL_CAPACITY;
         pool.seeds[idx] = bound_seed;
@@ -298,11 +296,69 @@ pub mod geiger_entropy {
             vdf_iters,
         });
 
-        // sources_bitmap: 0x01=geiger 0x02=vdf 0x04=slothash — all three active
         let sources_bitmap: u8 = 0x07;
         msg!("☢️ Entropy revealed | seq={} CPM={} uSv/h={:.3} dt={:.3}s VDF={}iters seed={:?} slot_hash={:?} binding_slot={} sources=0x{:02x} verified✓",
             pc.sequence, cpm, usv_h_milli as f64 / 1000.0, delta_t_ms as f64 / 1000.0,
             vdf_iters, &bound_seed[..4], &slot_hash[..4], binding_slot, sources_bitmap);
+        Ok(())
+    }
+
+    /// v6: Reveal entropy and create PendingFinalize for delayed SlotHash binding
+    /// Closes selective withholding — operator reveals BEFORE knowing SlotHash[binding_slot]
+    pub fn reveal_entropy_v6(
+        ctx: Context<RevealEntropyV6>,
+        vdf_output: [u8; 32],
+        operator_nonce: [u8; 32],
+        cpm: u32,
+        timestamp: i64,
+        _signature: [u8; 64],
+        delta_t_ms: u64,
+        usv_h_milli: u32,
+        vdf_iters: u32,
+    ) -> Result<()> {
+        let clock = Clock::get()?;
+        let pc = &mut ctx.accounts.pending_commitment;
+
+        require!(!pc.revealed, GeigerError::AlreadyRevealed);
+        require!(
+            clock.slot >= pc.committed_slot + COMMIT_REVEAL_DELAY_SLOTS,
+            GeigerError::RevealTooEarly
+        );
+        require!(
+            clock.slot <= pc.committed_slot + REVEAL_DEADLINE_SLOTS,
+            GeigerError::RevealDeadlineMissed
+        );
+        require!(cpm >= 5, GeigerError::CpmTooLow);
+
+        // Verify H(vdf_output || nonce) == stored commitment
+        let mut preimage = [0u8; 64];
+        preimage[..32].copy_from_slice(&vdf_output);
+        preimage[32..].copy_from_slice(&operator_nonce);
+        let mut hasher = Sha256::new();
+        hasher.update(&preimage);
+        let computed_hash: [u8; 32] = hasher.finalize().into();
+        require!(computed_hash == pc.commitment_hash, GeigerError::CommitmentMismatch);
+
+        // Mark commitment as revealed
+        pc.revealed = true;
+
+        // Create PendingFinalize with delayed binding_slot
+        let pf = &mut ctx.accounts.pending_finalize;
+        pf.operator = ctx.accounts.operator.key();
+        pf.vdf_output = vdf_output;
+        pf.binding_slot = pc.committed_slot + BINDING_SLOT_DELAY; // future slot — unknown now
+        pf.committed_at_slot = pc.committed_slot;
+        pf.sequence = pc.sequence;
+        pf.finalized = false;
+        pf.bump = ctx.bumps.pending_finalize;
+
+        let node = &mut ctx.accounts.entropy_node;
+        node.submissions = node.submissions.saturating_add(1);
+        node.last_submission = clock.unix_timestamp;
+
+        msg!("☢️ Entropy revealed (v6) | seq={} CPM={} binding_slot={} — awaiting finalize at slot {}",
+            pc.sequence, cpm, pf.binding_slot, pf.binding_slot);
+        msg!("   ⚠️  SlotHash[{}] unknown at reveal — selective withholding CLOSED", pf.binding_slot);
         Ok(())
     }
 
@@ -333,6 +389,62 @@ pub mod geiger_entropy {
         msg!("🚨 Operator slashed | seq={}", pc.sequence);
         Ok(())
     }
+
+    pub fn reset_commitment(_ctx: Context<ResetCommitment>) -> Result<()> {
+        // Closes the PendingCommitment account and returns lamports to operator
+        // Used to migrate from old struct layout to v6 struct
+        Ok(())
+    }
+
+    pub fn finalize_entropy(ctx: Context<FinalizeEntropy>) -> Result<()> {
+        let clock = Clock::get()?;
+        let pf = &mut ctx.accounts.pending_finalize;
+
+        require!(clock.slot >= pf.binding_slot, GeigerError::BindingSlotNotReached);
+        require!(!pf.finalized, GeigerError::AlreadyFinalized);
+
+        let slot_hashes_data = ctx.accounts.slot_hashes.try_borrow_data()?;
+        let mut slot_hash = [0u8; 32];
+        let num_entries = if slot_hashes_data.len() >= 8 {
+            u64::from_le_bytes(slot_hashes_data[0..8].try_into().unwrap()) as usize
+        } else { 0 };
+        let mut found = false;
+        for i in 0..num_entries.min(512) {
+            let offset = 8 + i * 40;
+            if offset + 40 > slot_hashes_data.len() { break; }
+            let slot = u64::from_le_bytes(slot_hashes_data[offset..offset+8].try_into().unwrap());
+            if slot == pf.binding_slot {
+                slot_hash.copy_from_slice(&slot_hashes_data[offset+8..offset+40]);
+                found = true;
+                break;
+            }
+        }
+        drop(slot_hashes_data);
+        require!(found, GeigerError::SlotHashNotAvailable);
+
+        let mut hasher = Sha256::new();
+        hasher.update(&pf.vdf_output);
+        hasher.update(&slot_hash);
+        hasher.update(&pf.sequence.to_le_bytes());
+        hasher.update(b"GEIGER_V6_FINALIZE");
+        let final_seed: [u8; 32] = hasher.finalize().into();
+
+        let pool = &mut ctx.accounts.entropy_pool;
+        let idx = (pool.head as usize) % POOL_CAPACITY;
+        pool.seeds[idx] = final_seed;
+        pool.head = pool.head.wrapping_add(1);
+        pool.total_submissions = pool.total_submissions.saturating_add(1);
+
+        let node = &mut ctx.accounts.entropy_node;
+        node.submissions = node.submissions.saturating_add(1);
+
+        pf.finalized = true;
+
+        msg!("☢️ Entropy FINALIZED (v6) | seq={} binding_slot={} finalized_slot={}",
+            pf.sequence, pf.binding_slot, clock.slot);
+        Ok(())
+    }
+
 
 
 }
@@ -610,6 +722,14 @@ pub enum GeigerError {
     InvalidSequence,
     #[msg("Previous commitment not yet revealed")]
     UnrevealedCommitmentPending,
+    #[msg("Binding slot not reached yet — must wait for delayed finalize")]
+    BindingSlotNotReached,
+    #[msg("Slot hash not available in sysvar — too old")]
+    SlotHashNotAvailable,
+    #[msg("Not yet revealed")]
+    NotYetRevealed,
+    #[msg("Already finalized")]
+    AlreadyFinalized,
     #[msg("Commitment hash mismatch")]
     CommitmentMismatch,
     #[msg("Reveal too early")]
@@ -629,6 +749,8 @@ pub enum GeigerError {
 pub const COMMITMENT_SEED: &[u8] = b"commitment";
 pub const COMMIT_REVEAL_DELAY_SLOTS: u64 = 8;
 pub const REVEAL_DEADLINE_SLOTS: u64 = 128;
+pub const BINDING_SLOT_DELAY: u64 = 200;   // Future slot for SlotHash — unknown at reveal time
+pub const FINALIZE_GRACE_SLOTS: u64 = 50;  // Grace period after binding_slot before slash
 pub const SLASH_AMOUNT_LAMPORTS: u64 = 5_000_000_000; // 5 XNT
 
 // ---------------------------------------------------------------------------
@@ -645,6 +767,23 @@ pub struct PendingCommitment {
     pub revealed: bool,
     pub bump: u8,
 }
+
+// ---------------------------------------------------------------------------
+// v6: Pending Finalize Account (separate PDA — avoids migration issues)
+// ---------------------------------------------------------------------------
+#[account]
+#[derive(InitSpace)]
+pub struct PendingFinalize {
+    pub operator: Pubkey,       // 32
+    pub vdf_output: [u8; 32],   // 32
+    pub binding_slot: u64,      // 8  — future slot, unknown at reveal time
+    pub committed_at_slot: u64, // 8  — audit trail
+    pub sequence: u64,          // 8
+    pub finalized: bool,        // 1
+    pub bump: u8,               // 1
+}
+
+pub const FINALIZE_SEED: &[u8] = b"finalize";
 
 // ---------------------------------------------------------------------------
 // Commit-Reveal Account Contexts
@@ -706,6 +845,78 @@ pub struct RevealEntropy<'info> {
     /// CHECK: SlotHashes sysvar for on-chain entropy binding
     #[account(address = anchor_lang::solana_program::sysvar::slot_hashes::ID)]
     pub slot_hashes: AccountInfo<'info>,
+}
+
+#[derive(Accounts)]
+pub struct ResetCommitment<'info> {
+    #[account(
+        mut,
+        close = operator,
+        seeds = [COMMITMENT_SEED, operator.key().as_ref()],
+        bump = pending_commitment.bump,
+    )]
+    pub pending_commitment: Account<'info, PendingCommitment>,
+    #[account(mut)]
+    pub operator: Signer<'info>,
+    pub system_program: Program<'info, System>,
+}
+
+#[derive(Accounts)]
+pub struct FinalizeEntropy<'info> {
+    #[account(
+        mut,
+        seeds = [ENTROPY_POOL_SEED],
+        bump = entropy_pool.bump,
+    )]
+    pub entropy_pool: Account<'info, EntropyPool>,
+    #[account(
+        mut,
+        close = caller,
+        seeds = [FINALIZE_SEED, pending_finalize.operator.as_ref(), &pending_finalize.sequence.to_le_bytes()],
+        bump = pending_finalize.bump,
+    )]
+    pub pending_finalize: Account<'info, PendingFinalize>,
+    #[account(
+        mut,
+        seeds = [ENTROPY_NODE_SEED, pending_finalize.operator.as_ref()],
+        bump = entropy_node.bump,
+    )]
+    pub entropy_node: Account<'info, EntropyNode>,
+    /// CHECK: SlotHashes sysvar for delayed entropy binding
+    #[account(address = anchor_lang::solana_program::sysvar::slot_hashes::ID)]
+    pub slot_hashes: AccountInfo<'info>,
+    // Anyone can call finalize (permissionless for liveness)
+    #[account(mut)]
+    pub caller: Signer<'info>,
+}
+
+#[derive(Accounts)]
+pub struct RevealEntropyV6<'info> {
+    #[account(
+        mut,
+        seeds = [COMMITMENT_SEED, operator.key().as_ref()],
+        bump = pending_commitment.bump,
+        constraint = pending_commitment.operator == operator.key(),
+    )]
+    pub pending_commitment: Account<'info, PendingCommitment>,
+    #[account(
+        init,
+        payer = operator,
+        space = 8 + PendingFinalize::INIT_SPACE,
+        seeds = [FINALIZE_SEED, operator.key().as_ref(), &pending_commitment.sequence.to_le_bytes()],
+        bump,
+    )]
+    pub pending_finalize: Account<'info, PendingFinalize>,
+    #[account(
+        mut,
+        seeds = [ENTROPY_NODE_SEED, operator.key().as_ref()],
+        bump = entropy_node.bump,
+        has_one = operator,
+    )]
+    pub entropy_node: Account<'info, EntropyNode>,
+    #[account(mut)]
+    pub operator: Signer<'info>,
+    pub system_program: Program<'info, System>,
 }
 
 #[derive(Accounts)]

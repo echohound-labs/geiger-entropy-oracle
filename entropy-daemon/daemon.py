@@ -356,8 +356,11 @@ def onchain_submitter(cfg: dict, entropy_queue: queue.Queue, logger: logging.Log
     submit_script = Path(__file__).parent / os.environ.get("SUBMIT_SCRIPT", "submit_entropy.js")
     commit_script = Path(__file__).parent / "mainnet" / "commit_entropy.js"
     reveal_script = Path(__file__).parent / "mainnet" / "reveal_entropy.js"
+    reveal_v6_script = Path(__file__).parent / "mainnet" / "reveal_entropy_v6.js"
+    finalize_script = Path(__file__).parent / "mainnet" / "finalize_entropy.js"
 
     use_commit_reveal = commit_script.exists() and reveal_script.exists()
+    use_v6 = reveal_v6_script.exists() and finalize_script.exists()
     recover_script = Path(__file__).parent / "mainnet" / "recover_commitment.js"
 
     if use_commit_reveal:
@@ -476,7 +479,7 @@ def onchain_submitter(cfg: dict, entropy_queue: queue.Queue, logger: logging.Log
                 logger.info(f"Committed | seq={sequence} CPM={cpm}")
 
                 reveal_result = subprocess.run(
-                    ["node", str(reveal_script),
+                    ["node", str(reveal_v6_script if use_v6 else reveal_script),
                      vdf_out_32, nonce, sig_hex, str(cpm), str(timestamp),
                      str(int(event.get("delta_t_ms", 0))),
                      str(int(event.get("usv_h", 0) * 1000)),
@@ -485,7 +488,7 @@ def onchain_submitter(cfg: dict, entropy_queue: queue.Queue, logger: logging.Log
                 )
 
                 if reveal_result.returncode == 0:
-                    logger.info(f"Revealed | seq={sequence} CPM={cpm} VDF={vdf_iters}iters")
+                    logger.info(f"Revealed (v6) | seq={sequence} CPM={cpm} VDF={vdf_iters}iters" if use_v6 else f"Revealed | seq={sequence} CPM={cpm} VDF={vdf_iters}iters")
                     sequence += 1
                     # Cycle sleep — reduces TX cost while maintaining fresh entropy
                     cycle_sleep = cfg.get("tuning", {}).get("cycle_sleep_seconds", 15)
@@ -501,7 +504,7 @@ def onchain_submitter(cfg: dict, entropy_queue: queue.Queue, logger: logging.Log
                         logger.info(f"Retrying reveal | attempt {retry+1}/3 | waiting {retry_delay}s")
                         time.sleep(retry_delay)
                         retry_result = subprocess.run(
-                            ["node", str(reveal_script),
+                            ["node", str(reveal_v6_script if use_v6 else reveal_script),
                              vdf_out_32, nonce, sig_hex, str(cpm), str(timestamp),
                              str(int(event.get("delta_t_ms", 0))),
                              str(int(event.get("usv_h", 0) * 1000)),
@@ -633,6 +636,43 @@ def main():
         daemon=True
     )
     chain_thread.start()
+
+    # v6: Background finalize thread
+    def finalize_loop():
+        import subprocess
+        from pathlib import Path
+        finalize_script = Path(__file__).parent / "mainnet" / "finalize_entropy.js"
+        recover_script = Path(__file__).parent / "mainnet" / "recover_commitment.js"
+        if not finalize_script.exists():
+            return
+        logger.info("v6 finalize loop started")
+        # Track sequences that need finalizing
+        pending_finalizes = []
+        while True:
+            try:
+                # Check for any pending finalizes
+                result = subprocess.run(
+                    ["node", str(finalize_script), "", "auto"],
+                    capture_output=True, text=True, timeout=60
+                )
+                if result.returncode == 0:
+                    output = result.stdout.strip()
+                    if "Finalized" in output:
+                        logger.info(f"v6 finalize: {output[:80]}")
+                    elif "Not ready" in output:
+                        logger.debug(f"v6 finalize: {output[:80]}")
+                elif result.stderr:
+                    err = result.stderr.strip()
+                    if "Account does not exist" not in err:
+                        logger.debug(f"v6 finalize check: {err[:80]}")
+            except Exception as e:
+                logger.debug(f"v6 finalize loop error: {e}")
+            time.sleep(10)
+
+    if (Path(__file__).parent / "mainnet" / "finalize_entropy.js").exists():
+        finalize_thread = threading.Thread(target=finalize_loop, daemon=True)
+        finalize_thread.start()
+        logger.info("v6 background finalize thread started")
 
     # REST API
     port = cfg["daemon"].get("port", 8745)
