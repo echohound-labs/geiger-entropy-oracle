@@ -204,8 +204,12 @@ pub mod geiger_entropy {
         pc.operator = ctx.accounts.operator.key();
         pc.commitment_hash = commitment_hash;
         pc.committed_slot = clock.slot;
+        pc.binding_slot = clock.slot + BINDING_SLOT_DELAY; // v6: future slot, unknown at reveal
         pc.sequence = sequence;
         pc.revealed = false;
+        pc.vdf_output_stored = [0u8; 32];
+        pc.operator_nonce_stored = [0u8; 32];
+        pc.is_finalized = false;
         pc.bump = ctx.bumps.pending_commitment;
 
         emit!(CommitEvent {
@@ -254,36 +258,16 @@ pub mod geiger_entropy {
         let computed_hash: [u8; 32] = hasher.finalize().into();
         require!(computed_hash == pc.commitment_hash, GeigerError::CommitmentMismatch);
 
-        // Read current slot hash from SlotHashes sysvar for binding
-        let slot_hashes_data = ctx.accounts.slot_hashes.try_borrow_data()?;
-        // SlotHashes sysvar layout: 8 bytes length, then entries of (slot: u64, hash: [u8;32])
-        let binding_slot = clock.slot;
-        let mut slot_hash = [0u8; 32];
-        if slot_hashes_data.len() >= 48 {
-            // First entry is most recent slot hash — bytes 8..16 = slot, 16..48 = hash
-            slot_hash.copy_from_slice(&slot_hashes_data[16..48]);
-        }
-        drop(slot_hashes_data);
-
-        // Mix: SHA256(vdf_output || slot_hash || sequence_bytes) = final bound seed
-        let mut hasher = Sha256::new();
-        hasher.update(&vdf_output);
-        hasher.update(&slot_hash);
-        hasher.update(&pc.sequence.to_le_bytes());
-        let bound_seed: [u8; 32] = hasher.finalize().into();
-
-        // Store bound seed in entropy pool (not raw vdf_output)
-        let pool = &mut ctx.accounts.entropy_pool;
-        let idx = (pool.head as usize) % POOL_CAPACITY;
-        pool.seeds[idx] = bound_seed;
-        pool.head = pool.head.wrapping_add(1);
-        pool.total_submissions = pool.total_submissions.saturating_add(1);
+        // v6: Store VDF output — DO NOT mix into pool yet
+        // Pool mixing happens in finalize_entropy() after binding_slot arrives
+        // Operator reveals BLIND — SlotHash[binding_slot] unknown at reveal time
+        pc.vdf_output_stored = vdf_output;
+        pc.operator_nonce_stored = operator_nonce;
+        pc.revealed = true;
 
         let node = &mut ctx.accounts.entropy_node;
         node.submissions = node.submissions.saturating_add(1);
         node.last_submission = clock.unix_timestamp;
-
-        pc.revealed = true;
 
         emit!(RevealEvent {
             operator: ctx.accounts.operator.key(),
@@ -298,11 +282,9 @@ pub mod geiger_entropy {
             vdf_iters,
         });
 
-        // sources_bitmap: 0x01=geiger 0x02=vdf 0x04=slothash — all three active
-        let sources_bitmap: u8 = 0x07;
-        msg!("☢️ Entropy revealed | seq={} CPM={} uSv/h={:.3} dt={:.3}s VDF={}iters seed={:?} slot_hash={:?} binding_slot={} sources=0x{:02x} verified✓",
-            pc.sequence, cpm, usv_h_milli as f64 / 1000.0, delta_t_ms as f64 / 1000.0,
-            vdf_iters, &bound_seed[..4], &slot_hash[..4], binding_slot, sources_bitmap);
+        msg!("☢️ Entropy REVEALED (v6) | seq={} CPM={} binding_slot={} — awaiting finalize",
+            pc.sequence, cpm, pc.binding_slot);
+        msg!("   ⚠️  SlotHash[{}] unknown at reveal — selective withholding CLOSED", pc.binding_slot);
         Ok(())
     }
 
@@ -333,6 +315,74 @@ pub mod geiger_entropy {
         msg!("🚨 Operator slashed | seq={}", pc.sequence);
         Ok(())
     }
+
+    pub fn finalize_entropy(ctx: Context<FinalizeEntropy>) -> Result<()> {
+        let clock = Clock::get()?;
+        let pc = &mut ctx.accounts.pending_commitment;
+
+        // Can only finalize AFTER binding_slot arrives
+        require!(
+            clock.slot >= pc.binding_slot,
+            GeigerError::BindingSlotNotReached
+        );
+
+        // Must have been revealed
+        require!(pc.revealed, GeigerError::NotYetRevealed);
+
+        // Cannot finalize twice
+        require!(!pc.is_finalized, GeigerError::AlreadyFinalized);
+
+        // Lookup SlotHash from binding_slot (now in recent past)
+        let slot_hashes_data = ctx.accounts.slot_hashes.try_borrow_data()?;
+        let mut slot_hash = [0u8; 32];
+        let num_entries = if slot_hashes_data.len() >= 8 {
+            u64::from_le_bytes(slot_hashes_data[0..8].try_into().unwrap()) as usize
+        } else { 0 };
+
+        let mut found = false;
+        for i in 0..num_entries.min(512) {
+            let offset = 8 + i * 40;
+            if offset + 40 > slot_hashes_data.len() { break; }
+            let slot = u64::from_le_bytes(slot_hashes_data[offset..offset+8].try_into().unwrap());
+            if slot == pc.binding_slot {
+                slot_hash.copy_from_slice(&slot_hashes_data[offset+8..offset+40]);
+                found = true;
+                break;
+            }
+        }
+        drop(slot_hashes_data);
+
+        require!(found, GeigerError::SlotHashNotAvailable);
+
+        // Final seed = SHA256(vdf_output || SlotHash[binding_slot] || sequence || domain)
+        let mut hasher = Sha256::new();
+        hasher.update(&pc.vdf_output_stored);
+        hasher.update(&slot_hash);
+        hasher.update(&pc.sequence.to_le_bytes());
+        hasher.update(b"GEIGER_V6_FINALIZE");
+        let final_seed: [u8; 32] = hasher.finalize().into();
+
+        // Store in entropy pool
+        let pool = &mut ctx.accounts.entropy_pool;
+        let idx = (pool.head as usize) % POOL_CAPACITY;
+        pool.seeds[idx] = final_seed;
+        pool.head = pool.head.wrapping_add(1);
+        pool.total_submissions = pool.total_submissions.saturating_add(1);
+
+        let node = &mut ctx.accounts.entropy_node;
+        node.submissions = node.submissions.saturating_add(1);
+
+        pc.is_finalized = true;
+
+        // sequence tracked per-commitment, no global sequence counter needed
+
+        msg!("☢️ Entropy FINALIZED (v6) | seq={} final_seed={:?} slot_hash={:?} binding_slot={} finalized_slot={}",
+            pc.sequence, &final_seed[..4], &slot_hash[..4], pc.binding_slot, clock.slot);
+        msg!("   ✅ Selective withholding CLOSED — revealed blind at slot before binding_slot {}",
+            pc.binding_slot);
+        Ok(())
+    }
+
 
 
 }
@@ -610,6 +660,14 @@ pub enum GeigerError {
     InvalidSequence,
     #[msg("Previous commitment not yet revealed")]
     UnrevealedCommitmentPending,
+    #[msg("Binding slot not reached yet — must wait for delayed finalize")]
+    BindingSlotNotReached,
+    #[msg("Slot hash not available in sysvar — too old")]
+    SlotHashNotAvailable,
+    #[msg("Not yet revealed")]
+    NotYetRevealed,
+    #[msg("Already finalized")]
+    AlreadyFinalized,
     #[msg("Commitment hash mismatch")]
     CommitmentMismatch,
     #[msg("Reveal too early")]
@@ -629,6 +687,8 @@ pub enum GeigerError {
 pub const COMMITMENT_SEED: &[u8] = b"commitment";
 pub const COMMIT_REVEAL_DELAY_SLOTS: u64 = 8;
 pub const REVEAL_DEADLINE_SLOTS: u64 = 128;
+pub const BINDING_SLOT_DELAY: u64 = 150;   // Future slot for SlotHash — unknown at reveal time
+pub const FINALIZE_GRACE_SLOTS: u64 = 50;  // Grace period after binding_slot before slash
 pub const SLASH_AMOUNT_LAMPORTS: u64 = 5_000_000_000; // 5 XNT
 
 // ---------------------------------------------------------------------------
@@ -636,14 +696,21 @@ pub const SLASH_AMOUNT_LAMPORTS: u64 = 5_000_000_000; // 5 XNT
 // ---------------------------------------------------------------------------
 
 #[account]
-#[derive(InitSpace)]
 pub struct PendingCommitment {
     pub operator: Pubkey,
     pub commitment_hash: [u8; 32],
     pub committed_slot: u64,
+    pub binding_slot: u64,
     pub sequence: u64,
     pub revealed: bool,
+    pub vdf_output_stored: [u8; 32],
+    pub operator_nonce_stored: [u8; 32],
+    pub is_finalized: bool,
     pub bump: u8,
+}
+
+impl PendingCommitment {
+    pub const INIT_SPACE: usize = 32 + 32 + 8 + 8 + 8 + 1 + 32 + 32 + 1 + 1;
 }
 
 // ---------------------------------------------------------------------------
@@ -706,6 +773,39 @@ pub struct RevealEntropy<'info> {
     /// CHECK: SlotHashes sysvar for on-chain entropy binding
     #[account(address = anchor_lang::solana_program::sysvar::slot_hashes::ID)]
     pub slot_hashes: AccountInfo<'info>,
+}
+
+#[derive(Accounts)]
+pub struct FinalizeEntropy<'info> {
+    #[account(
+        mut,
+        seeds = [ORACLE_STATE_SEED],
+        bump = oracle_state.bump,
+    )]
+    pub oracle_state: Account<'info, OracleState>,
+    #[account(
+        mut,
+        seeds = [ENTROPY_POOL_SEED],
+        bump = entropy_pool.bump,
+    )]
+    pub entropy_pool: Account<'info, EntropyPool>,
+    #[account(
+        mut,
+        seeds = [COMMITMENT_SEED, pending_commitment.operator.as_ref()],
+        bump = pending_commitment.bump,
+    )]
+    pub pending_commitment: Account<'info, PendingCommitment>,
+    #[account(
+        mut,
+        seeds = [ENTROPY_NODE_SEED, pending_commitment.operator.as_ref()],
+        bump = entropy_node.bump,
+    )]
+    pub entropy_node: Account<'info, EntropyNode>,
+    /// CHECK: SlotHashes sysvar for delayed entropy binding
+    #[account(address = anchor_lang::solana_program::sysvar::slot_hashes::ID)]
+    pub slot_hashes: AccountInfo<'info>,
+    // Anyone can call finalize (permissionless for liveness)
+    pub caller: Signer<'info>,
 }
 
 #[derive(Accounts)]
