@@ -229,7 +229,7 @@ console.log(Buffer.from(request.result).toString('hex'));
 
 ---
 
-## ENTROPY Token — Coming Soon
+## Token — Coming Soon
 Details to be announced. Follow [@EchoHoundX](https://twitter.com/EchoHoundX) for updates. ☢️
 
 ---
