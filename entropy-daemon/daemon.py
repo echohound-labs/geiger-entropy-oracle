@@ -477,6 +477,8 @@ def onchain_submitter(cfg: dict, entropy_queue: queue.Queue, logger: logging.Log
                     continue
 
                 logger.info(f"Committed | seq={sequence} CPM={cpm}")
+                # Wait for COMMIT_REVEAL_DELAY_SLOTS (8 slots = ~3.2s)
+                time.sleep(4)
 
                 reveal_result = subprocess.run(
                     ["node", str(reveal_v6_script if use_v6 else reveal_script),
