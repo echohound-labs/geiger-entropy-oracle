@@ -396,6 +396,12 @@ pub mod geiger_entropy {
         Ok(())
     }
 
+    pub fn close_pending_finalize(_ctx: Context<ClosePendingFinalize>) -> Result<()> {
+        // Closes a stale PendingFinalize account and returns lamports to operator
+        // Used when binding_slot is too old to finalize (>512 slots ago)
+        Ok(())
+    }
+
     pub fn finalize_entropy(ctx: Context<FinalizeEntropy>) -> Result<()> {
         let clock = Clock::get()?;
         let pf = &mut ctx.accounts.pending_finalize;
@@ -856,6 +862,21 @@ pub struct ResetCommitment<'info> {
         bump = pending_commitment.bump,
     )]
     pub pending_commitment: Account<'info, PendingCommitment>,
+    #[account(mut)]
+    pub operator: Signer<'info>,
+    pub system_program: Program<'info, System>,
+}
+
+#[derive(Accounts)]
+pub struct ClosePendingFinalize<'info> {
+    #[account(
+        mut,
+        close = operator,
+        seeds = [FINALIZE_SEED, operator.key().as_ref(), &pending_finalize.sequence.to_le_bytes()],
+        bump = pending_finalize.bump,
+        constraint = pending_finalize.operator == operator.key(),
+    )]
+    pub pending_finalize: Account<'info, PendingFinalize>,
     #[account(mut)]
     pub operator: Signer<'info>,
     pub system_program: Program<'info, System>,

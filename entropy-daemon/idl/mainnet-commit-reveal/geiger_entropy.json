@@ -8,6 +8,61 @@
   },
   "instructions": [
     {
+      "name": "close_pending_finalize",
+      "discriminator": [
+        25,
+        117,
+        131,
+        150,
+        141,
+        236,
+        218,
+        128
+      ],
+      "accounts": [
+        {
+          "name": "pending_finalize",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  102,
+                  105,
+                  110,
+                  97,
+                  108,
+                  105,
+                  122,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "operator"
+              },
+              {
+                "kind": "account",
+                "path": "pending_finalize.sequence",
+                "account": "PendingFinalize"
+              }
+            ]
+          }
+        },
+        {
+          "name": "operator",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": []
+    },
+    {
       "name": "commit_entropy",
       "docs": [
         "Step 1: Commit entropy hash on-chain (blind)"
