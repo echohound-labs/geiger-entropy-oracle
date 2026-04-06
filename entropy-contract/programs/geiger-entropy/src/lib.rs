@@ -2,7 +2,7 @@
 use anchor_lang::prelude::*;
 use sha2::{Sha256, Digest};
 
-declare_id!("2dQf9uaCzXewrDNLttmtzQmc3SmqfAHz3qahKQjtGQyY");
+declare_id!("BxUNg2yo5371BQMZPkfcxdCptFRDHkhvEXNM1QNPBRYU");
 
 pub const ORACLE_STATE_SEED: &[u8] = b"oracle_state";
 pub const ENTROPY_NODE_SEED: &[u8] = b"entropy_node";
@@ -749,7 +749,7 @@ pub enum GeigerError {
 pub const COMMITMENT_SEED: &[u8] = b"commitment";
 pub const COMMIT_REVEAL_DELAY_SLOTS: u64 = 8;
 pub const REVEAL_DEADLINE_SLOTS: u64 = 128;
-pub const BINDING_SLOT_DELAY: u64 = 150;   // Future slot for SlotHash — unknown at reveal time
+pub const BINDING_SLOT_DELAY: u64 = 200;   // Future slot for SlotHash — unknown at reveal time
 pub const FINALIZE_GRACE_SLOTS: u64 = 50;  // Grace period after binding_slot before slash
 pub const SLASH_AMOUNT_LAMPORTS: u64 = 5_000_000_000; // 5 XNT
 
