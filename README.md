@@ -69,7 +69,7 @@ VDF-secured Physical Entropy: "Here's a cryptographic proof cheating was impossi
 ```
 
 ### Layer 3 — X1 SlotHash Binding ✨
-At reveal time, the current X1 SlotHash is mixed into the final seed:
+At finalize time (~80 seconds after reveal), a future X1 SlotHash is mixed into the final seed:
 ```
 bound_seed = SHA256(vdf_output || slot_hash || sequence)
 ```
@@ -110,7 +110,8 @@ If the operator commits entropy but fails to reveal within 128 slots, anyone can
 │  • Wesolowski VDF(seed, 5M_iters) = time-locked        │
 │  • Ed25519 signs final seed                                 │
 │  • BLIND commit hash on-chain (commit-reveal)               │
-│  • reveal after 3 slots — SlotHash mixed on-chain           │
+│  • reveal_v6() — stores VDF, creates PendingFinalize        │
+│  • finalize() — mixes future SlotHash after ~80 slots        │
 │  • auto-recovery on RPC timeout or restart                  │
 │  • slash mechanism for missed reveals                       │
 │  • 15s cycle sleep — cost efficient, pool always fresh      │
@@ -134,7 +135,7 @@ If the operator commits entropy but fails to reveal within 128 slots, anyone can
 Every reveal is permanently recorded on X1:
 ```
 ☢️ Entropy revealed | seq=58077 CPM=26 uSv/h=0.169 dt=2.637s
-VDF=30000iters seed=[104,88,184,213] slot_hash=[194,253,135,141]
+VDF=5000000iters seed=[104,88,184,213] slot_hash=[194,253,135,141]
 binding_slot=39512140 sources=0x07 verified✓
 ```
 
@@ -228,33 +229,8 @@ console.log(Buffer.from(request.result).toString('hex'));
 
 ---
 
-## ENTROPY Token — Coming Q2 2026
-
-ENTROPY is a novel token where supply is controlled entirely by radioactive decay.
-```
-Max Supply:  1,000,000 ENTROPY — ever
-Emission:    4 years equal distribution
-Mint:        Oracle program only — no team can mint extra
-
-Year 1: 250,000 ENTROPY (25%)
-Year 2: 250,000 ENTROPY (25%)
-Year 3: 250,000 ENTROPY (25%)
-Year 4: 250,000 ENTROPY (25%)
-```
-
-Token launch prerequisites — NOT MET YET:
-- Multi-node operators
-- Staking contract
-- Slash in ENTROPY
-- Statistical audit
-
-> "The universe controls the supply. No team can mint extra ENTROPY. Ever." ☢️
-
-**How to earn ENTROPY:**
-1. Buy a GMC-500 Geiger counter (~$100)
-2. Run the entropy daemon
-3. Register your node on X1
-4. Earn ENTROPY automatically from every decay event
+## ENTROPY Token — Coming Soon
+Details to be announced. Follow [@EchoHoundX](https://twitter.com/EchoHoundX) for updates. ☢️
 
 ---
 
@@ -310,9 +286,9 @@ curl http://localhost:8746/entropy
 {
   "status": "ok",
   "uptime_seconds": 3600,
-  "total_submissions": 58000,
+  "total_submissions": 22000,
   "latest_cpm": 22,
-  "vdf_iters": 30000
+  "vdf_iters": 5000000
 }
 ```
 
@@ -325,9 +301,9 @@ curl http://localhost:8746/entropy
   "usv_h": 0.143,
   "timestamp": 1773637219,
   "signature": "ed25519...",
-  "vdf_iters": 30000,
-  "vdf_time_ms": 103.2,
-  "total_submissions": 58000
+  "vdf_iters": 5000000,
+  "vdf_time_ms": 15670.0,
+  "total_submissions": 22000
 }
 ```
 
@@ -361,7 +337,7 @@ Hardware: GMC-500+ Geiger Counter
 Fossils:  Cenozoic Era — 2–23 million years old
 Wallet:   HGFisVbULNKqogtPuGTfcHG9y6i5nboZabYwifkiiodo
 Live:     March 16, 2026
-Sequences: 22,000+ on-chain
+Sequences: 22,800+ on-chain
 ```
 
 ---
