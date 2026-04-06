@@ -102,6 +102,117 @@
       ]
     },
     {
+      "name": "finalize_entropy",
+      "discriminator": [
+        81,
+        189,
+        56,
+        201,
+        150,
+        29,
+        124,
+        235
+      ],
+      "accounts": [
+        {
+          "name": "entropy_pool",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  101,
+                  110,
+                  116,
+                  114,
+                  111,
+                  112,
+                  121,
+                  95,
+                  112,
+                  111,
+                  111,
+                  108
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "pending_finalize",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  102,
+                  105,
+                  110,
+                  97,
+                  108,
+                  105,
+                  122,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "pending_finalize.operator",
+                "account": "PendingFinalize"
+              },
+              {
+                "kind": "account",
+                "path": "pending_finalize.sequence",
+                "account": "PendingFinalize"
+              }
+            ]
+          }
+        },
+        {
+          "name": "entropy_node",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  101,
+                  110,
+                  116,
+                  114,
+                  111,
+                  112,
+                  121,
+                  95,
+                  110,
+                  111,
+                  100,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "pending_finalize.operator",
+                "account": "PendingFinalize"
+              }
+            ]
+          }
+        },
+        {
+          "name": "slot_hashes",
+          "address": "SysvarS1otHashes111111111111111111111111111"
+        },
+        {
+          "name": "caller",
+          "writable": true,
+          "signer": true
+        }
+      ],
+      "args": []
+    },
+    {
       "name": "fulfill_randomness",
       "discriminator": [
         235,
@@ -462,6 +573,58 @@
       ]
     },
     {
+      "name": "reset_commitment",
+      "discriminator": [
+        197,
+        238,
+        250,
+        49,
+        70,
+        138,
+        49,
+        248
+      ],
+      "accounts": [
+        {
+          "name": "pending_commitment",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  109,
+                  109,
+                  105,
+                  116,
+                  109,
+                  101,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "operator"
+              }
+            ]
+          }
+        },
+        {
+          "name": "operator",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": []
+    },
+    {
       "name": "reveal_entropy",
       "docs": [
         "Step 2: Reveal entropy — must match commitment"
@@ -594,6 +757,10 @@
         {
           "name": "system_program",
           "address": "11111111111111111111111111111111"
+        },
+        {
+          "name": "slot_hashes",
+          "address": "SysvarS1otHashes111111111111111111111111111"
         }
       ],
       "args": [
@@ -631,6 +798,184 @@
               64
             ]
           }
+        },
+        {
+          "name": "delta_t_ms",
+          "type": "u64"
+        },
+        {
+          "name": "usv_h_milli",
+          "type": "u32"
+        },
+        {
+          "name": "vdf_iters",
+          "type": "u32"
+        }
+      ]
+    },
+    {
+      "name": "reveal_entropy_v6",
+      "docs": [
+        "v6: Reveal entropy and create PendingFinalize for delayed SlotHash binding",
+        "Closes selective withholding — operator reveals BEFORE knowing SlotHash[binding_slot]"
+      ],
+      "discriminator": [
+        73,
+        145,
+        135,
+        41,
+        133,
+        195,
+        253,
+        96
+      ],
+      "accounts": [
+        {
+          "name": "pending_commitment",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  109,
+                  109,
+                  105,
+                  116,
+                  109,
+                  101,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "operator"
+              }
+            ]
+          }
+        },
+        {
+          "name": "pending_finalize",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  102,
+                  105,
+                  110,
+                  97,
+                  108,
+                  105,
+                  122,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "operator"
+              },
+              {
+                "kind": "account",
+                "path": "pending_commitment.sequence",
+                "account": "PendingCommitment"
+              }
+            ]
+          }
+        },
+        {
+          "name": "entropy_node",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  101,
+                  110,
+                  116,
+                  114,
+                  111,
+                  112,
+                  121,
+                  95,
+                  110,
+                  111,
+                  100,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "operator"
+              }
+            ]
+          }
+        },
+        {
+          "name": "operator",
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "entropy_node"
+          ]
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "vdf_output",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
+        },
+        {
+          "name": "operator_nonce",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
+        },
+        {
+          "name": "cpm",
+          "type": "u32"
+        },
+        {
+          "name": "timestamp",
+          "type": "i64"
+        },
+        {
+          "name": "_signature",
+          "type": {
+            "array": [
+              "u8",
+              64
+            ]
+          }
+        },
+        {
+          "name": "delta_t_ms",
+          "type": "u64"
+        },
+        {
+          "name": "usv_h_milli",
+          "type": "u32"
+        },
+        {
+          "name": "vdf_iters",
+          "type": "u32"
         }
       ]
     },
@@ -882,6 +1227,19 @@
       ]
     },
     {
+      "name": "PendingFinalize",
+      "discriminator": [
+        24,
+        174,
+        249,
+        250,
+        22,
+        77,
+        151,
+        36
+      ]
+    },
+    {
       "name": "RandomnessRequest",
       "discriminator": [
         244,
@@ -1041,26 +1399,46 @@
     },
     {
       "code": 6010,
+      "name": "BindingSlotNotReached",
+      "msg": "Binding slot not reached yet — must wait for delayed finalize"
+    },
+    {
+      "code": 6011,
+      "name": "SlotHashNotAvailable",
+      "msg": "Slot hash not available in sysvar — too old"
+    },
+    {
+      "code": 6012,
+      "name": "NotYetRevealed",
+      "msg": "Not yet revealed"
+    },
+    {
+      "code": 6013,
+      "name": "AlreadyFinalized",
+      "msg": "Already finalized"
+    },
+    {
+      "code": 6014,
       "name": "CommitmentMismatch",
       "msg": "Commitment hash mismatch"
     },
     {
-      "code": 6011,
+      "code": 6015,
       "name": "RevealTooEarly",
       "msg": "Reveal too early"
     },
     {
-      "code": 6012,
+      "code": 6016,
       "name": "RevealDeadlineMissed",
       "msg": "Reveal deadline missed"
     },
     {
-      "code": 6013,
+      "code": 6017,
       "name": "RevealDeadlineNotReached",
       "msg": "Reveal deadline not yet reached"
     },
     {
-      "code": 6014,
+      "code": 6018,
       "name": "AlreadyRevealed",
       "msg": "Already revealed"
     }
@@ -1296,6 +1674,47 @@
       }
     },
     {
+      "name": "PendingFinalize",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "operator",
+            "type": "pubkey"
+          },
+          {
+            "name": "vdf_output",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "binding_slot",
+            "type": "u64"
+          },
+          {
+            "name": "committed_at_slot",
+            "type": "u64"
+          },
+          {
+            "name": "sequence",
+            "type": "u64"
+          },
+          {
+            "name": "finalized",
+            "type": "bool"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
       "name": "RandomnessFulfilled",
       "type": {
         "kind": "struct",
@@ -1449,6 +1868,18 @@
           {
             "name": "timestamp",
             "type": "i64"
+          },
+          {
+            "name": "delta_t_ms",
+            "type": "u64"
+          },
+          {
+            "name": "usv_h_milli",
+            "type": "u32"
+          },
+          {
+            "name": "vdf_iters",
+            "type": "u32"
           }
         ]
       }

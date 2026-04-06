@@ -303,6 +303,65 @@ pub mod geiger_entropy {
         Ok(())
     }
 
+    /// v6: Reveal entropy and create PendingFinalize for delayed SlotHash binding
+    /// Closes selective withholding — operator reveals BEFORE knowing SlotHash[binding_slot]
+    pub fn reveal_entropy_v6(
+        ctx: Context<RevealEntropyV6>,
+        vdf_output: [u8; 32],
+        operator_nonce: [u8; 32],
+        cpm: u32,
+        timestamp: i64,
+        _signature: [u8; 64],
+        delta_t_ms: u64,
+        usv_h_milli: u32,
+        vdf_iters: u32,
+    ) -> Result<()> {
+        let clock = Clock::get()?;
+        let pc = &mut ctx.accounts.pending_commitment;
+
+        require!(!pc.revealed, GeigerError::AlreadyRevealed);
+        require!(
+            clock.slot >= pc.committed_slot + COMMIT_REVEAL_DELAY_SLOTS,
+            GeigerError::RevealTooEarly
+        );
+        require!(
+            clock.slot <= pc.committed_slot + REVEAL_DEADLINE_SLOTS,
+            GeigerError::RevealDeadlineMissed
+        );
+        require!(cpm >= 5, GeigerError::CpmTooLow);
+
+        // Verify H(vdf_output || nonce) == stored commitment
+        let mut preimage = [0u8; 64];
+        preimage[..32].copy_from_slice(&vdf_output);
+        preimage[32..].copy_from_slice(&operator_nonce);
+        let mut hasher = Sha256::new();
+        hasher.update(&preimage);
+        let computed_hash: [u8; 32] = hasher.finalize().into();
+        require!(computed_hash == pc.commitment_hash, GeigerError::CommitmentMismatch);
+
+        // Mark commitment as revealed
+        pc.revealed = true;
+
+        // Create PendingFinalize with delayed binding_slot
+        let pf = &mut ctx.accounts.pending_finalize;
+        pf.operator = ctx.accounts.operator.key();
+        pf.vdf_output = vdf_output;
+        pf.binding_slot = pc.committed_slot + BINDING_SLOT_DELAY; // future slot — unknown now
+        pf.committed_at_slot = pc.committed_slot;
+        pf.sequence = pc.sequence;
+        pf.finalized = false;
+        pf.bump = ctx.bumps.pending_finalize;
+
+        let node = &mut ctx.accounts.entropy_node;
+        node.submissions = node.submissions.saturating_add(1);
+        node.last_submission = clock.unix_timestamp;
+
+        msg!("☢️ Entropy revealed (v6) | seq={} CPM={} binding_slot={} — awaiting finalize at slot {}",
+            pc.sequence, cpm, pf.binding_slot, pf.binding_slot);
+        msg!("   ⚠️  SlotHash[{}] unknown at reveal — selective withholding CLOSED", pf.binding_slot);
+        Ok(())
+    }
+
     /// Slash operator who committed but failed to reveal
     pub fn slash_missed_reveal(ctx: Context<SlashMissedReveal>) -> Result<()> {
         let pc = &mut ctx.accounts.pending_commitment;
@@ -829,6 +888,35 @@ pub struct FinalizeEntropy<'info> {
     // Anyone can call finalize (permissionless for liveness)
     #[account(mut)]
     pub caller: Signer<'info>,
+}
+
+#[derive(Accounts)]
+pub struct RevealEntropyV6<'info> {
+    #[account(
+        mut,
+        seeds = [COMMITMENT_SEED, operator.key().as_ref()],
+        bump = pending_commitment.bump,
+        constraint = pending_commitment.operator == operator.key(),
+    )]
+    pub pending_commitment: Account<'info, PendingCommitment>,
+    #[account(
+        init,
+        payer = operator,
+        space = 8 + PendingFinalize::INIT_SPACE,
+        seeds = [FINALIZE_SEED, operator.key().as_ref(), &pending_commitment.sequence.to_le_bytes()],
+        bump,
+    )]
+    pub pending_finalize: Account<'info, PendingFinalize>,
+    #[account(
+        mut,
+        seeds = [ENTROPY_NODE_SEED, operator.key().as_ref()],
+        bump = entropy_node.bump,
+        has_one = operator,
+    )]
+    pub entropy_node: Account<'info, EntropyNode>,
+    #[account(mut)]
+    pub operator: Signer<'info>,
+    pub system_program: Program<'info, System>,
 }
 
 #[derive(Accounts)]
