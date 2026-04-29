@@ -17,7 +17,7 @@ poll_interval_ms = 250
 
 [x1]
 rpc_url = "https://rpc.testnet.x1.xyz"
-program_id = "2dQf9uaCzXewrDNLttmtzQmc3SmqfAHz3qahKQjtGQyY"
+program_id = "BxUNg2yo5371BQMZPkfcxdCptFRDHkhvEXNM1QNPBRYU"
 oracle_state = "CrrLuXpoCuK8szmtXxBEDPc5FTkbUGzEWfMyjeSL83bS"
 entropy_pool = "KMgwwzxYxrXufHySyMNchwyhupsNNsc4wPN71xtqoGG"
 entropy_node = "3KA1UPPZf1N36RgmLwDKqAdJB6WPnX44aBs9rgP3TvdV"
