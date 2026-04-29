@@ -4,9 +4,10 @@ const fs = require("fs");
 const path = require("path");
 
 async function main() {
-  const [vdfOutputHex, operatorNonceHex, cpmStr] = process.argv.slice(2);
+  const [vdfOutputHex, operatorNonceHex, sigHex, cpmStr, timestampStr,
+         deltaTStr, usvHStr, vdfItersStr] = process.argv.slice(2);
   if (!vdfOutputHex || !operatorNonceHex) {
-    console.error("Usage: node reveal_entropy_v6.js <vdf_hex> <nonce_hex> [cpm]");
+    console.error("Usage: node reveal_entropy_v6.js <vdf_hex> <nonce_hex> <sig> <cpm> <ts> <dt> <usv> <iters>");
     process.exit(1);
   }
 
@@ -46,6 +47,10 @@ async function main() {
   const nonce = Array.from(Buffer.from(operatorNonceHex, "hex").slice(0, 32));
   const zeroSig = Array(64).fill(0);
   const cpm = parseInt(cpmStr || "20");
+  const timestamp = parseInt(timestampStr || String(Math.floor(Date.now() / 1000)));
+  const deltaT = parseInt(deltaTStr || "0");
+  const usvH = parseInt(usvHStr || "0");
+  const vdfIters = parseInt(vdfItersStr || "100000");
 
   console.log("Calling revealEntropyV6...");
   console.log("Sequence:", sequence.toString());
@@ -56,11 +61,11 @@ async function main() {
       vdfOutput,
       nonce,
       cpm,
-      new anchor.BN(Math.floor(Date.now() / 1000)),
+      new anchor.BN(timestamp),
       zeroSig,
-      new anchor.BN(0),
-      0,
-      100000
+      new anchor.BN(deltaT),
+      usvH,
+      vdfIters
     )
     .accounts({
       pendingCommitment: pendingCommitmentPDA,
