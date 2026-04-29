@@ -354,7 +354,7 @@ def onchain_submitter(cfg: dict, entropy_queue: queue.Queue, logger: logging.Log
     import secrets
 
     # Pick network folder based on config path
-    _network = "testnet" if "testnet" in str(config_path).lower() else "mainnet"
+    _network = "testnet" if "testnet" in str(CONFIG_PATH).lower() else "mainnet"
     commit_script = Path(__file__).parent / _network / "commit_entropy.js"
     reveal_script = Path(__file__).parent / _network / "reveal_entropy.js"
     reveal_v6_script = Path(__file__).parent / _network / "reveal_entropy_v6.js"
@@ -617,6 +617,7 @@ async def health():
 # ---------------------------------------------------------------------------
 
 def main():
+    _network = "testnet" if "testnet" in str(CONFIG_PATH).lower() else "mainnet"
     global _state
 
     cfg = load_config()
