@@ -684,6 +684,45 @@ def main():
         finalize_thread.start()
         logger.info("v6 background finalize thread started")
 
+    # Fulfill loop — polls for pending RandomnessRequest accounts and fulfills them
+    def fulfill_loop():
+        import subprocess
+        fulfill_script = Path(__file__).parent / "testnet" / "fulfill_randomness.js"
+        if not fulfill_script.exists():
+            logger.warning("fulfill_randomness.js not found — fulfill loop disabled")
+            return
+        logger.info("Fulfill loop started — polling every 30s for pending requests")
+        while True:
+            try:
+                result = subprocess.run(
+                    ["node", str(fulfill_script)],
+                    capture_output=True, text=True, timeout=90,
+                    cwd=str(Path(__file__).parent)
+                )
+                output = result.stdout.strip()
+                if "No pending requests" in output:
+                    logger.debug("Fulfill: no pending requests")
+                elif "Fulfilled TX" in output or "fulfilled" in output.lower():
+                    for line in output.splitlines():
+                        if any(x in line for x in ["Fulfilled", "fulfilled", "Failed", "❌", "✅"]):
+                            logger.info(f"Fulfill: {line.strip()}")
+                elif result.returncode != 0 and result.stderr:
+                    err = result.stderr.strip()
+                    if "Account does not exist" not in err:
+                        logger.warning(f"Fulfill error: {err[:120]}")
+            except subprocess.TimeoutExpired:
+                logger.warning("Fulfill loop: timed out after 90s")
+            except Exception as e:
+                logger.warning(f"Fulfill loop exception: {e}")
+            time.sleep(30)
+
+    fulfill_script_path = Path(__file__).parent / "testnet" / "fulfill_randomness.js"
+    if fulfill_script_path.exists():
+        fulfill_thread = threading.Thread(target=fulfill_loop, daemon=True)
+        fulfill_thread.start()
+        logger.info("Fulfill loop thread started — polling every 30s")
+
+
     # REST API
     port = cfg["daemon"].get("port", 8745)
     logger.info(f"REST API on http://localhost:{port}")
