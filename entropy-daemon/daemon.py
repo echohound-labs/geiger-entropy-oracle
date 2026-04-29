@@ -353,15 +353,15 @@ def onchain_submitter(cfg: dict, entropy_queue: queue.Queue, logger: logging.Log
     import subprocess
     import secrets
 
-    submit_script = Path(__file__).parent / os.environ.get("SUBMIT_SCRIPT", "submit_entropy.js")
-    commit_script = Path(__file__).parent / "mainnet" / "commit_entropy.js"
-    reveal_script = Path(__file__).parent / "mainnet" / "reveal_entropy.js"
-    reveal_v6_script = Path(__file__).parent / "mainnet" / "reveal_entropy_v6.js"
-    finalize_script = Path(__file__).parent / "mainnet" / "finalize_entropy.js"
-
+    # Pick network folder based on config path
+    _network = "testnet" if "testnet" in str(config_path).lower() else "mainnet"
+    commit_script = Path(__file__).parent / _network / "commit_entropy.js"
+    reveal_script = Path(__file__).parent / _network / "reveal_entropy.js"
+    reveal_v6_script = Path(__file__).parent / _network / "reveal_entropy_v6.js"
+    finalize_script = Path(__file__).parent / _network / "finalize_entropy.js"
     use_commit_reveal = commit_script.exists() and reveal_script.exists()
     use_v6 = reveal_v6_script.exists() and finalize_script.exists()
-    recover_script = Path(__file__).parent / "mainnet" / "recover_commitment.js"
+    recover_script = Path(__file__).parent / _network / "recover_commitment.js"
 
     if use_commit_reveal:
         logger.info("On-chain submitter ready -- commit-reveal mode")
@@ -526,7 +526,7 @@ def onchain_submitter(cfg: dict, entropy_queue: queue.Queue, logger: logging.Log
                         # If v6 and "already in use" error — close stuck PendingFinalize
                         if use_v6 and "already in use" in reveal_result.stderr:
                             logger.warning(f"Stuck PendingFinalize detected for seq={sequence} — closing...")
-                            close_script = Path(__file__).parent / "mainnet" / "close_pending_finalize.js"
+                            close_script = Path(__file__).parent / _network / "close_pending_finalize.js"
                             if close_script.exists():
                                 subprocess.run(["node", str(close_script), str(sequence)],
                                     capture_output=True, text=True, timeout=30)
@@ -651,8 +651,7 @@ def main():
     def finalize_loop():
         import subprocess
         from pathlib import Path
-        finalize_script = Path(__file__).parent / "mainnet" / "finalize_entropy.js"
-        recover_script = Path(__file__).parent / "mainnet" / "recover_commitment.js"
+        finalize_script = Path(__file__).parent / _network / "finalize_entropy.js"
         if not finalize_script.exists():
             return
         logger.info("v6 finalize loop started")
@@ -679,7 +678,7 @@ def main():
                 logger.debug(f"v6 finalize loop error: {e}")
             time.sleep(10)
 
-    if (Path(__file__).parent / "mainnet" / "finalize_entropy.js").exists():
+    if (Path(__file__).parent / _network / "finalize_entropy.js").exists():
         finalize_thread = threading.Thread(target=finalize_loop, daemon=True)
         finalize_thread.start()
         logger.info("v6 background finalize thread started")
